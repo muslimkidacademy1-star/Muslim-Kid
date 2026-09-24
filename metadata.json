@@ -1,0 +1,6 @@
+{
+  "name": "أكاديمية المسلم الصغير - منصة المتابعة الإدارية",
+  "description": "نظام إداري وأكاديمي موحد متعدد الصلاحيات لمتابعة طلاب الحلقات القرآنية، المعلمين، الاشتراكات والتقارير الدورية",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
