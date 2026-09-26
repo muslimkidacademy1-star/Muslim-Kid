@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
 import { PWAInstallButton } from '../common/PWAInstallButton';
+import { UserRole } from '../../types';
 
 export type NavigationTab =
   | 'dashboard'
@@ -24,8 +25,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobile,
 }) => {
   const { currentUser, logout, switchUserRole } = useApp();
+  const currentRole: UserRole = currentUser.role;
 
-  const isTeacher = currentUser.role === 'teacher';
+  const isTeacher = currentRole === 'teacher';
 
   const navItems = isTeacher
     ? [
@@ -139,73 +141,72 @@ export const Sidebar: React.FC<SidebarProps> = ({
             })}
           </nav>
 
-          {/* Quick Role Fast Switcher in Sidebar */}
-          <div className="px-4 py-2 border-t border-[#bec8c8]/20">
-            <div className="mb-2.5">
-              <PWAInstallButton variant="sidebar" />
+          {/* Quick Role Fast Switcher in Sidebar - متاح فقط للمدير العام والمشرف العام */}
+          {(currentUser.role === 'manager' || currentUser.role === 'general_supervisor') && (
+            <div className="px-4 py-2 border-t border-[#bec8c8]/20">
+              <span className="text-[11px] text-[#6f7979] font-semibold block mb-1.5 px-1">
+                تجربة مستويات الصلاحيات:
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
+                <button
+                  onClick={() => {
+                    switchUserRole('general_supervisor');
+                    if (onCloseMobile) onCloseMobile();
+                  }}
+                  className={`py-1 px-1.5 rounded-lg text-[10px] font-bold transition-colors text-center ${
+                    currentRole === 'general_supervisor'
+                      ? 'bg-[#005253] text-white shadow-xs'
+                      : 'bg-[#f0f3ff] text-[#3f4949] hover:bg-[#dee8ff]'
+                  }`}
+                  title="مشرف عام"
+                >
+                  مشرف عام
+                </button>
+                <button
+                  onClick={() => {
+                    switchUserRole('sub_supervisor');
+                    if (onCloseMobile) onCloseMobile();
+                  }}
+                  className={`py-1 px-1.5 rounded-lg text-[10px] font-bold transition-colors text-center ${
+                    currentRole === 'sub_supervisor'
+                      ? 'bg-[#005253] text-white shadow-xs'
+                      : 'bg-[#f0f3ff] text-[#3f4949] hover:bg-[#dee8ff]'
+                  }`}
+                  title="مشرف فرعي"
+                >
+                  مشرف فرعي
+                </button>
+                <button
+                  onClick={() => {
+                    switchUserRole('manager');
+                    if (onCloseMobile) onCloseMobile();
+                  }}
+                  className={`py-1 px-1.5 rounded-lg text-[10px] font-bold transition-colors text-center ${
+                    currentRole === 'manager'
+                      ? 'bg-[#005253] text-white shadow-xs'
+                      : 'bg-[#f0f3ff] text-[#3f4949] hover:bg-[#dee8ff]'
+                  }`}
+                  title="المدير العام"
+                >
+                  المدير
+                </button>
+                <button
+                  onClick={() => {
+                    switchUserRole('teacher');
+                    if (onCloseMobile) onCloseMobile();
+                  }}
+                  className={`py-1 px-1.5 rounded-lg text-[10px] font-bold transition-colors text-center ${
+                    currentRole === 'teacher'
+                      ? 'bg-[#005253] text-white shadow-xs'
+                      : 'bg-[#f0f3ff] text-[#3f4949] hover:bg-[#dee8ff]'
+                  }`}
+                  title="معلم حلقة"
+                >
+                  معلم
+                </button>
+              </div>
             </div>
-            <span className="text-[11px] text-[#6f7979] font-semibold block mb-1.5 px-1">
-              تجربة مستويات الصلاحيات:
-            </span>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
-              <button
-                onClick={() => {
-                  switchUserRole('general_supervisor');
-                  if (onCloseMobile) onCloseMobile();
-                }}
-                className={`py-1 px-1.5 rounded-lg text-[10px] font-bold transition-colors text-center ${
-                  currentUser.role === 'general_supervisor'
-                    ? 'bg-[#005253] text-white shadow-xs'
-                    : 'bg-[#f0f3ff] text-[#3f4949] hover:bg-[#dee8ff]'
-                }`}
-                title="مشرف عام"
-              >
-                مشرف عام
-              </button>
-              <button
-                onClick={() => {
-                  switchUserRole('sub_supervisor');
-                  if (onCloseMobile) onCloseMobile();
-                }}
-                className={`py-1 px-1.5 rounded-lg text-[10px] font-bold transition-colors text-center ${
-                  currentUser.role === 'sub_supervisor'
-                    ? 'bg-[#005253] text-white shadow-xs'
-                    : 'bg-[#f0f3ff] text-[#3f4949] hover:bg-[#dee8ff]'
-                }`}
-                title="مشرف فرعي"
-              >
-                مشرف فرعي
-              </button>
-              <button
-                onClick={() => {
-                  switchUserRole('manager');
-                  if (onCloseMobile) onCloseMobile();
-                }}
-                className={`py-1 px-1.5 rounded-lg text-[10px] font-bold transition-colors text-center ${
-                  currentUser.role === 'manager'
-                    ? 'bg-[#005253] text-white shadow-xs'
-                    : 'bg-[#f0f3ff] text-[#3f4949] hover:bg-[#dee8ff]'
-                }`}
-                title="المدير العام"
-              >
-                المدير
-              </button>
-              <button
-                onClick={() => {
-                  switchUserRole('teacher');
-                  if (onCloseMobile) onCloseMobile();
-                }}
-                className={`py-1 px-1.5 rounded-lg text-[10px] font-bold transition-colors text-center ${
-                  currentUser.role === 'teacher'
-                    ? 'bg-[#005253] text-white shadow-xs'
-                    : 'bg-[#f0f3ff] text-[#3f4949] hover:bg-[#dee8ff]'
-                }`}
-                title="معلم حلقة"
-              >
-                معلم
-              </button>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* PWA Install in Sidebar */}
@@ -224,11 +225,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           <button
-            onClick={logout}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[#ba1a1a] hover:bg-[#ffdad6] hover:text-[#93000a] transition-colors text-xs font-bold"
+            onClick={() => {
+              logout();
+              if (onCloseMobile) onCloseMobile();
+            }}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-rose-50 text-[#ba1a1a] hover:bg-[#ffdad6] hover:text-[#93000a] transition-all text-xs font-bold border border-rose-200 cursor-pointer shadow-xs"
           >
             <span className="material-symbols-outlined text-lg">logout</span>
-            <span>تسجيل الخروج</span>
+            <span>تسجيل الخروج من النظام</span>
           </button>
         </div>
       </aside>

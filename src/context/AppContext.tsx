@@ -50,7 +50,7 @@ interface AppContextType {
   setCurrentUser: (supervisor: Supervisor) => void;
   switchUserRole: (role: UserRole) => void;
   isLoggedIn: boolean;
-  login: (email: string, role?: UserRole) => boolean;
+  login: (identifier: string, roleOrPassword?: string, rememberMe?: boolean) => boolean;
   logout: () => void;
 
   // Supabase Cloud State & Sync
@@ -122,7 +122,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // 1. Auth & User state
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-    return localStorage.getItem('mk_logged_in') !== 'false';
+    return localStorage.getItem('mk_logged_in') === 'true';
   });
 
   const [currentUser, setCurrentUserState] = useState<Supervisor>(() => {
@@ -994,23 +994,75 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const login = (email: string, role?: UserRole): boolean => {
-    let matched = INITIAL_SUPERVISORS.find(
-      (s) => s.email.toLowerCase() === email.toLowerCase()
-    );
-    if (!matched && role) {
-      matched = INITIAL_SUPERVISORS.find((s) => s.role === role);
+  const login = (
+    identifier: string,
+    roleOrPassword?: string,
+    rememberMe: boolean = true
+  ): boolean => {
+    const cleanId = identifier.trim().toLowerCase();
+
+    let matched: Supervisor | undefined;
+
+    // Check by role shortcut or demo credentials
+    if (
+      cleanId === 'admin@academy.com' ||
+      cleanId === 'admin' ||
+      cleanId === 'manager' ||
+      roleOrPassword === 'manager'
+    ) {
+      matched = INITIAL_SUPERVISORS.find((s) => s.role === 'manager');
+    } else if (
+      cleanId === 'supervisor@academy.com' ||
+      cleanId === 'supervisor' ||
+      cleanId === 'sub_supervisor' ||
+      cleanId === 'saleh@muslimkid.academy' ||
+      roleOrPassword === 'sub_supervisor'
+    ) {
+      matched = INITIAL_SUPERVISORS.find((s) => s.role === 'sub_supervisor');
+    } else if (
+      cleanId === 'teacher@academy.com' ||
+      cleanId === 'teacher' ||
+      cleanId === 'ahmed.teacher@muslimkid.academy' ||
+      roleOrPassword === 'teacher'
+    ) {
+      matched = INITIAL_SUPERVISORS.find((s) => s.role === 'teacher');
+    } else if (
+      cleanId === 'saadi@muslimkid.academy' ||
+      cleanId === 'general_supervisor' ||
+      roleOrPassword === 'general_supervisor'
+    ) {
+      matched = INITIAL_SUPERVISORS.find((s) => s.role === 'general_supervisor');
+    } else {
+      matched = INITIAL_SUPERVISORS.find(
+        (s) =>
+          s.email.toLowerCase() === cleanId ||
+          s.name.toLowerCase().includes(cleanId) ||
+          (roleOrPassword && s.role === roleOrPassword)
+      );
     }
+
     if (!matched) {
       matched = INITIAL_SUPERVISORS[0];
     }
+
     setCurrentUserState(matched);
     setIsLoggedIn(true);
+
+    if (rememberMe) {
+      localStorage.setItem('mk_logged_in', 'true');
+      localStorage.setItem('mk_current_user_id', matched.id);
+    } else {
+      localStorage.setItem('mk_logged_in', 'false');
+      localStorage.removeItem('mk_current_user_id');
+    }
+
     return true;
   };
 
   const logout = () => {
     setIsLoggedIn(false);
+    localStorage.setItem('mk_logged_in', 'false');
+    localStorage.removeItem('mk_current_user_id');
   };
 
   // Role-filtered students and teachers

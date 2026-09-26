@@ -17,8 +17,8 @@ import { ActivityLogModal } from './components/modals/ActivityLogModal';
 import { LoginView } from './components/auth/LoginView';
 import { Student } from './types';
 
-function MainAppContent() {
-  const { isLoggedIn, currentUser } = useApp();
+function AuthenticatedApp() {
+  const { currentUser } = useApp();
 
   const [activeTab, setActiveTab] = useState<NavigationTab>('dashboard');
   const [isSidebarMobileOpen, setIsSidebarMobileOpen] = useState(false);
@@ -30,9 +30,12 @@ function MainAppContent() {
   const [selectedStudentForVacation, setSelectedStudentForVacation] = useState<Student | null>(null);
   const [isActivityLogOpen, setIsActivityLogOpen] = useState(false);
 
-  if (!isLoggedIn) {
-    return <LoginView />;
-  }
+  // Reset tab to dashboard if teacher has no access to specific tabs
+  React.useEffect(() => {
+    if (currentUser.role === 'teacher' && (activeTab === 'teachers' || activeTab === 'settings')) {
+      setActiveTab('dashboard');
+    }
+  }, [currentUser.role, activeTab]);
 
   // Handle modal openings
   const handleOpenEdit = (student: Student) => {
@@ -75,7 +78,6 @@ function MainAppContent() {
       return <SettingsView />;
     }
     if (activeTab === 'logs') {
-      // open modal and show dashboard
       return (
         <GeneralSupervisorView
           onAddStudent={handleOpenAddStudent}
@@ -182,6 +184,16 @@ function MainAppContent() {
       />
     </div>
   );
+}
+
+function MainAppContent() {
+  const { isLoggedIn } = useApp();
+
+  if (!isLoggedIn) {
+    return <LoginView />;
+  }
+
+  return <AuthenticatedApp />;
 }
 
 export default function App() {

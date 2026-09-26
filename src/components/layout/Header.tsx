@@ -37,6 +37,8 @@ export const Header: React.FC<HeaderProps> = ({
     fetchFromSupabase,
   } = useApp();
 
+  const currentRole: UserRole = currentUser.role;
+
   const [showNotifications, setShowNotifications] = useState(false);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -168,174 +170,191 @@ export const Header: React.FC<HeaderProps> = ({
           />
         </div>
 
-        {/* Quick Role Switcher Pill - The core feature to switch between 3 roles seamlessly! */}
-        <div className="relative" ref={roleRef}>
-          <button
-            onClick={() => setShowRoleMenu(!showRoleMenu)}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#e7eeff] border border-[#bec8c8]/30 text-[#005253] hover:bg-[#dee8ff] transition-all text-xs sm:text-sm font-semibold shadow-xs"
-            title="تبديل مستوى الصلاحية (Role Switcher)"
-          >
-            <span className="material-symbols-outlined text-base sm:text-lg">
-              {currentUser.role === 'manager'
-                ? 'admin_panel_settings'
-                : currentUser.role === 'general_supervisor'
-                ? 'shield_person'
-                : 'supervisor_account'}
-            </span>
-            <span className="hidden sm:inline">الدور:</span>
-            <span className="underline decoration-dotted">{currentUser.title}</span>
-            <span className="material-symbols-outlined text-xs">expand_more</span>
-          </button>
+        {/* Quick Role Switcher Pill - متاح فقط للمدير العام والمشرف العام للتجربة والمتابعة */}
+        {(currentUser.role === 'manager' || currentUser.role === 'general_supervisor') ? (
+          <div className="relative" ref={roleRef}>
+            <button
+              onClick={() => setShowRoleMenu(!showRoleMenu)}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#e7eeff] border border-[#bec8c8]/30 text-[#005253] hover:bg-[#dee8ff] transition-all text-xs sm:text-sm font-semibold shadow-xs"
+              title="تبديل مستوى الصلاحية (Role Switcher)"
+            >
+              <span className="material-symbols-outlined text-base sm:text-lg">
+                {currentUser.role === 'manager'
+                  ? 'admin_panel_settings'
+                  : 'shield_person'}
+              </span>
+              <span className="hidden sm:inline">الدور:</span>
+              <span className="underline decoration-dotted">{currentUser.title}</span>
+              <span className="material-symbols-outlined text-xs">expand_more</span>
+            </button>
 
-          {/* Role selection dropdown */}
-          {showRoleMenu && (
-            <div className="absolute left-0 mt-2 w-64 rounded-2xl bg-white shadow-xl border border-[#bec8c8]/30 py-2 z-50 text-right animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-3 py-2 border-b border-[#bec8c8]/20 bg-[#f9f9ff]">
-                <span className="text-xs font-bold text-[#005253] block">
-                  تبديل مستوى الصلاحية
-                </span>
-                <span className="text-[11px] text-[#6f7979]">
-                  نفس قاعدة البيانات المركزية بصلاحيات مختلفة
-                </span>
+            {/* Role selection dropdown */}
+            {showRoleMenu && (
+              <div className="absolute left-0 mt-2 w-64 rounded-2xl bg-white shadow-xl border border-[#bec8c8]/30 py-2 z-50 text-right animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-3 py-2 border-b border-[#bec8c8]/20 bg-[#f9f9ff]">
+                  <span className="text-xs font-bold text-[#005253] block">
+                    تبديل مستوى الصلاحية (تجربة الإدارة)
+                  </span>
+                  <span className="text-[11px] text-[#6f7979]">
+                    معاينة النظام بالصلاحيات المختلفة
+                  </span>
+                </div>
+
+                <div className="p-1 space-y-1">
+                  <button
+                    onClick={() => handleRoleChange('general_supervisor')}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl text-right transition-colors ${
+                      currentRole === 'general_supervisor'
+                        ? 'bg-[#005253] text-white'
+                        : 'hover:bg-[#f0f3ff] text-[#111c2d]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-lg">shield_person</span>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold">المشرف العام</span>
+                        <span
+                          className={`text-[10px] ${
+                            currentRole === 'general_supervisor'
+                              ? 'text-[#a6eff1]'
+                              : 'text-[#6f7979]'
+                          }`}
+                        >
+                          كل الطلاب والمعلمين بدون ماليات دقيقة
+                        </span>
+                      </div>
+                    </div>
+                    {currentRole === 'general_supervisor' && (
+                      <span className="material-symbols-outlined text-base">check</span>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => handleRoleChange('sub_supervisor')}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl text-right transition-colors ${
+                      currentRole === 'sub_supervisor'
+                        ? 'bg-[#005253] text-white'
+                        : 'hover:bg-[#f0f3ff] text-[#111c2d]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-lg">supervisor_account</span>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold">مشرف فرعي (تعليمي)</span>
+                        <span
+                          className={`text-[10px] ${
+                            currentRole === 'sub_supervisor'
+                              ? 'text-[#a6eff1]'
+                              : 'text-[#6f7979]'
+                          }`}
+                        >
+                          فقط الطلاب والمعلمين المكلف بهم (4 معلمين)
+                        </span>
+                      </div>
+                    </div>
+                    {currentRole === 'sub_supervisor' && (
+                      <span className="material-symbols-outlined text-base">check</span>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => handleRoleChange('manager')}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl text-right transition-colors ${
+                      currentRole === 'manager'
+                        ? 'bg-[#005253] text-white'
+                        : 'hover:bg-[#f0f3ff] text-[#111c2d]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-lg">admin_panel_settings</span>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold">المدير العام والمالية</span>
+                        <span
+                          className={`text-[10px] ${
+                            currentRole === 'manager'
+                              ? 'text-[#a6eff1]'
+                              : 'text-[#6f7979]'
+                          }`}
+                        >
+                          صلاحية كاملة + الكروت والرسم المالي
+                        </span>
+                      </div>
+                    </div>
+                    {currentRole === 'manager' && (
+                      <span className="material-symbols-outlined text-base">check</span>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => handleRoleChange('teacher')}
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl text-right transition-colors ${
+                      currentRole === 'teacher'
+                        ? 'bg-[#005253] text-white'
+                        : 'hover:bg-[#f0f3ff] text-[#111c2d]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-lg">school</span>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold">معلم حلقة قرآن</span>
+                        <span
+                          className={`text-[10px] ${
+                            currentRole === 'teacher'
+                              ? 'text-[#a6eff1]'
+                              : 'text-[#6f7979]'
+                          }`}
+                        >
+                          واجهة مبسطة لطلابه فقط + زر تسليم تقرير 8 حصص
+                        </span>
+                      </div>
+                    </div>
+                    {currentRole === 'teacher' && (
+                      <span className="material-symbols-outlined text-base">check</span>
+                    )}
+                  </button>
+                </div>
+
+                <div className="px-2 pt-2 border-t border-[#bec8c8]/20 flex items-center justify-between gap-1">
+                  <button
+                    onClick={() => {
+                      resetDatabase();
+                      setShowRoleMenu(false);
+                    }}
+                    className="text-[11px] text-[#7d5800] hover:underline flex items-center gap-1 p-1"
+                    title="استعادة البيانات الأصلية"
+                  >
+                    <span className="material-symbols-outlined text-xs">restart_alt</span>
+                    <span>إعادة ضبط البيانات</span>
+                  </button>
+                  <button
+                    onClick={logout}
+                    className="text-[11px] text-[#ba1a1a] hover:underline flex items-center gap-1 p-1"
+                  >
+                    <span className="material-symbols-outlined text-xs">logout</span>
+                    <span>تسجيل الخروج</span>
+                  </button>
+                </div>
               </div>
-
-              <div className="p-1 space-y-1">
-                <button
-                  onClick={() => handleRoleChange('general_supervisor')}
-                  className={`w-full flex items-center justify-between p-2.5 rounded-xl text-right transition-colors ${
-                    currentUser.role === 'general_supervisor'
-                      ? 'bg-[#005253] text-white'
-                      : 'hover:bg-[#f0f3ff] text-[#111c2d]'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-lg">shield_person</span>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold">المشرف العام</span>
-                      <span
-                        className={`text-[10px] ${
-                          currentUser.role === 'general_supervisor'
-                            ? 'text-[#a6eff1]'
-                            : 'text-[#6f7979]'
-                        }`}
-                      >
-                        كل الطلاب والمعلمين بدون ماليات دقيقة
-                      </span>
-                    </div>
-                  </div>
-                  {currentUser.role === 'general_supervisor' && (
-                    <span className="material-symbols-outlined text-base">check</span>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => handleRoleChange('sub_supervisor')}
-                  className={`w-full flex items-center justify-between p-2.5 rounded-xl text-right transition-colors ${
-                    currentUser.role === 'sub_supervisor'
-                      ? 'bg-[#005253] text-white'
-                      : 'hover:bg-[#f0f3ff] text-[#111c2d]'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-lg">supervisor_account</span>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold">مشرف فرعي (تعليمي)</span>
-                      <span
-                        className={`text-[10px] ${
-                          currentUser.role === 'sub_supervisor'
-                            ? 'text-[#a6eff1]'
-                            : 'text-[#6f7979]'
-                        }`}
-                      >
-                        فقط الطلاب والمعلمين المكلف بهم (4 معلمين)
-                      </span>
-                    </div>
-                  </div>
-                  {currentUser.role === 'sub_supervisor' && (
-                    <span className="material-symbols-outlined text-base">check</span>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => handleRoleChange('manager')}
-                  className={`w-full flex items-center justify-between p-2.5 rounded-xl text-right transition-colors ${
-                    currentUser.role === 'manager'
-                      ? 'bg-[#005253] text-white'
-                      : 'hover:bg-[#f0f3ff] text-[#111c2d]'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-lg">admin_panel_settings</span>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold">المدير العام والمالية</span>
-                      <span
-                        className={`text-[10px] ${
-                          currentUser.role === 'manager'
-                            ? 'text-[#a6eff1]'
-                            : 'text-[#6f7979]'
-                        }`}
-                      >
-                        صلاحية كاملة + الكروت والرسم المالي
-                      </span>
-                    </div>
-                  </div>
-                  {currentUser.role === 'manager' && (
-                    <span className="material-symbols-outlined text-base">check</span>
-                  )}
-                </button>
-
-                <button
-                  onClick={() => handleRoleChange('teacher')}
-                  className={`w-full flex items-center justify-between p-2.5 rounded-xl text-right transition-colors ${
-                    currentUser.role === 'teacher'
-                      ? 'bg-[#005253] text-white'
-                      : 'hover:bg-[#f0f3ff] text-[#111c2d]'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-lg">school</span>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold">معلم (حلقة القرآن)</span>
-                      <span
-                        className={`text-[10px] ${
-                          currentUser.role === 'teacher'
-                            ? 'text-[#a6eff1]'
-                            : 'text-[#6f7979]'
-                        }`}
-                      >
-                        واجهة مبسطة لطلابه فقط + زر تسليم تقرير 8 حصص
-                      </span>
-                    </div>
-                  </div>
-                  {currentUser.role === 'teacher' && (
-                    <span className="material-symbols-outlined text-base">check</span>
-                  )}
-                </button>
-              </div>
-
-              <div className="px-2 pt-2 border-t border-[#bec8c8]/20 flex items-center justify-between gap-1">
-                <button
-                  onClick={() => {
-                    resetDatabase();
-                    setShowRoleMenu(false);
-                  }}
-                  className="text-[11px] text-[#7d5800] hover:underline flex items-center gap-1 p-1"
-                  title="استعادة البيانات الأصلية"
-                >
-                  <span className="material-symbols-outlined text-xs">restart_alt</span>
-                  <span>إعادة ضبط البيانات</span>
-                </button>
-                <button
-                  onClick={logout}
-                  className="text-[11px] text-[#ba1a1a] hover:underline flex items-center gap-1 p-1"
-                >
-                  <span className="material-symbols-outlined text-xs">logout</span>
-                  <span>تسجيل الخروج</span>
-                </button>
-              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#e7eeff] border border-[#bec8c8]/30 text-[#005253] text-xs sm:text-sm font-semibold shadow-xs">
+              <span className="material-symbols-outlined text-base sm:text-lg">
+                {currentUser.role === 'teacher' ? 'school' : 'supervisor_account'}
+              </span>
+              <span className="hidden sm:inline">الدور:</span>
+              <span>{currentUser.title}</span>
             </div>
-          )}
-        </div>
+            <button
+              onClick={logout}
+              className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-[#ba1a1a] border border-rose-200 transition-colors flex items-center justify-center cursor-pointer"
+              title="تسجيل الخروج"
+            >
+              <span className="material-symbols-outlined text-lg">logout</span>
+            </button>
+          </div>
+        )}
 
         {/* Notifications Bell */}
         <div className="relative" ref={notifRef}>
