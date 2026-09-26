@@ -32,6 +32,9 @@ export const Header: React.FC<HeaderProps> = ({
     markAllNotificationsAsRead,
     logout,
     resetDatabase,
+    isSupabaseConnected,
+    isSyncing,
+    fetchFromSupabase,
   } = useApp();
 
   const [showNotifications, setShowNotifications] = useState(false);
@@ -132,8 +135,22 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       )}
 
-      {/* Left Side in RTL: PWA Install, Search, Role Switcher, Notifications, Profile */}
+      {/* Left Side in RTL: PWA Install, Cloud Sync, Search, Role Switcher, Notifications, Profile */}
       <div className="flex items-center gap-1.5 sm:gap-2.5">
+        {/* Supabase Cloud Connection Indicator Pill */}
+        <button
+          onClick={() => fetchFromSupabase()}
+          disabled={isSyncing}
+          className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#e7eeff] hover:bg-[#dee8ff] text-[#005253] text-[11px] font-bold border border-[#bec8c8]/30 transition-all cursor-pointer"
+          title="متصل بسحابة Supabase - انقر للمزامنة الفورية"
+        >
+          <span className={`w-2 h-2 rounded-full ${isSupabaseConnected ? 'bg-emerald-500' : 'bg-amber-500'} ${isSyncing ? 'animate-ping' : ''}`}></span>
+          <span className="material-symbols-outlined text-sm">
+            {isSyncing ? 'sync' : 'cloud_done'}
+          </span>
+          <span className="hidden xl:inline">{isSyncing ? 'مزامنة...' : 'سحابة Supabase'}</span>
+        </button>
+
         {/* PWA Install Button */}
         <PWAInstallButton variant="header" />
 

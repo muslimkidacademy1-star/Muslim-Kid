@@ -38,6 +38,8 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
     addActivityLog,
     markReportAsSentToParent,
     currentUser,
+    seedSupabaseData,
+    isSyncing,
   } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,6 +48,16 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
   const [selectedPeriod] = useState('هذا الشهر (شعبان - رمضان 1445)');
   const [activeTab, setActiveTab] = useState<'all' | 'dispatch_center' | 'financials' | 'activity_log'>('all');
   const [sentReportSuccessId, setSentReportSuccessId] = useState<string | null>(null);
+  const [seedSuccessNotice, setSeedSuccessNotice] = useState<string | null>(null);
+
+  const handleSeedData = async () => {
+    setSeedSuccessNotice(null);
+    const res = await seedSupabaseData();
+    if (res.success) {
+      setSeedSuccessNotice(res.message);
+      setTimeout(() => setSeedSuccessNotice(null), 5000);
+    }
+  };
 
   // 1. Pending Reports for Dispatch: Reports submitted by teachers that haven't been sent to parents yet
   const pendingDispatchReports = useMemo(() => {
@@ -231,6 +243,18 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
           </button>
 
           <button
+            onClick={handleSeedData}
+            disabled={isSyncing}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-[#a6eff1] border border-white/25 text-xs sm:text-sm font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
+            title="مزامنة البيانات التجريبية إلى قاعدة بيانات Supabase السحابية"
+          >
+            <span className={`material-symbols-outlined text-lg ${isSyncing ? 'animate-spin' : ''}`}>
+              cloud_sync
+            </span>
+            <span>{isSyncing ? 'جارِ المزامنة...' : 'مزامنة البيانات التجريبية إلى Supabase'}</span>
+          </button>
+
+          <button
             onClick={onAddStudent}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#00e5ff] text-[#003738] text-xs sm:text-sm font-black hover:bg-[#80f0ff] transition-all shadow-xs cursor-pointer"
           >
@@ -239,6 +263,22 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Seed notification alert banner */}
+      {seedSuccessNotice && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl flex items-center justify-between gap-3 shadow-xs animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-emerald-600 text-xl">check_circle</span>
+            <span className="text-xs sm:text-sm font-bold">{seedSuccessNotice}</span>
+          </div>
+          <button
+            onClick={() => setSeedSuccessNotice(null)}
+            className="text-emerald-600 hover:text-emerald-800 text-xs font-bold"
+          >
+            إغلاق
+          </button>
+        </div>
+      )}
 
       {/* EXECUTIVE FINANCIAL KPI CARDS GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">

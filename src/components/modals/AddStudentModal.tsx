@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { SubscriptionStatus } from '../../types';
 import { ARABIC_WEEKDAYS, getTodayArabicWeekday } from '../../mock/initialData';
@@ -31,7 +31,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClos
 
   const canViewFinancials = currentUser.role === 'manager' || currentUser.role === 'general_supervisor';
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       setName('');
       setTeacherId(visibleTeachers[0]?.id || '');

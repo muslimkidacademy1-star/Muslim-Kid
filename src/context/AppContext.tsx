@@ -20,6 +20,19 @@ import {
   INITIAL_FINANCIAL_MONTHS,
   INITIAL_SESSION_LOGS,
 } from '../mock/initialData';
+import { supabase } from '../utils/supabase';
+import {
+  studentToSupabaseRow,
+  supabaseRowToStudent,
+  teacherToSupabaseRow,
+  supabaseRowToTeacher,
+  reportToSupabaseRow,
+  supabaseRowToReport,
+  sessionLogToSupabaseRow,
+  supabaseRowToSessionLog,
+  seedInitialDataToSupabase,
+  safeUuid,
+} from '../utils/supabaseSync';
 
 export interface ReportStatusInfo {
   days: number;
@@ -39,6 +52,13 @@ interface AppContextType {
   isLoggedIn: boolean;
   login: (email: string, role?: UserRole) => boolean;
   logout: () => void;
+
+  // Supabase Cloud State & Sync
+  isSupabaseConnected: boolean;
+  isSyncing: boolean;
+  lastSyncTime: string | null;
+  seedSupabaseData: () => Promise<{ success: boolean; message: string }>;
+  fetchFromSupabase: () => Promise<void>;
 
   // Data
   students: Student[];
@@ -176,6 +196,152 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [isSupabaseConnected, setIsSupabaseConnected] = useState<boolean>(true);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(() => {
+    return localStorage.getItem('mk_last_supabase_sync') || null;
+  });
+
+  // Function to fetch all data from Supabase
+  const fetchFromSupabase = useCallback(async () => {
+    try {
+      setIsSyncing(true);
+      const [studRes, teachRes, repRes, sessRes] = await Promise.all([
+        supabase.from('students').select('*'),
+        supabase.from('teachers').select('*'),
+        supabase.from('reports').select('*'),
+        supabase.from('session_logs').select('*'),
+      ]);
+
+      if (studRes.error) throw studRes.error;
+      if (teachRes.error) throw teachRes.error;
+      if (repRes.error) throw repRes.error;
+      if (sessRes.error) throw sessRes.error;
+
+      // Only update local state if Supabase has data
+      if (teachRes.data && teachRes.data.length > 0) {
+        const loadedTeachers = teachRes.data.map(supabaseRowToTeacher);
+        setTeachers(loadedTeachers);
+      }
+
+      if (studRes.data && studRes.data.length > 0) {
+        const loadedStudents = studRes.data.map(supabaseRowToStudent);
+        setStudents(loadedStudents);
+      }
+
+      if (repRes.data && repRes.data.length > 0) {
+        const loadedReports = repRes.data.map(supabaseRowToReport);
+        setReports(loadedReports);
+      }
+
+      if (sessRes.data && sessRes.data.length > 0) {
+        const loadedSessions = sessRes.data.map(supabaseRowToSessionLog);
+        setSessionLogs(loadedSessions);
+      }
+
+      const nowTime = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+      setLastSyncTime(nowTime);
+      localStorage.setItem('mk_last_supabase_sync', nowTime);
+      setIsSupabaseConnected(true);
+    } catch (err: any) {
+      console.warn('Error fetching from Supabase, operating with cached data:', err);
+      setIsSupabaseConnected(false);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, []);
+
+  // Initial load from Supabase and Realtime subscription
+  useEffect(() => {
+    fetchFromSupabase();
+
+    // Setup Supabase Realtime Channels for live multi-device synchronization
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'students' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newStudent = supabaseRowToStudent(payload.new);
+            setStudents((prev) => {
+              if (prev.some((s) => s.id === newStudent.id)) return prev;
+              return [newStudent, ...prev];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updated = supabaseRowToStudent(payload.new);
+            setStudents((prev) => prev.map((s) => (s.id === updated.id ? { ...s, ...updated } : s)));
+          } else if (payload.eventType === 'DELETE') {
+            setStudents((prev) => prev.filter((s) => s.id !== payload.old.id));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'teachers' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newT = supabaseRowToTeacher(payload.new);
+            setTeachers((prev) => {
+              if (prev.some((t) => t.id === newT.id)) return prev;
+              return [newT, ...prev];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updated = supabaseRowToTeacher(payload.new);
+            setTeachers((prev) => prev.map((t) => (t.id === updated.id ? { ...t, ...updated } : t)));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'session_logs' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newLog = supabaseRowToSessionLog(payload.new);
+            setSessionLogs((prev) => {
+              if (prev.some((l) => l.id === newLog.id)) return prev;
+              return [newLog, ...prev];
+            });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'reports' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newRep = supabaseRowToReport(payload.new);
+            setReports((prev) => {
+              if (prev.some((r) => r.id === newRep.id)) return prev;
+              return [newRep, ...prev];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updated = supabaseRowToReport(payload.new);
+            setReports((prev) => prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r)));
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setIsSupabaseConnected(true);
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchFromSupabase]);
+
+  // Seed Supabase Handler
+  const seedSupabaseData = useCallback(async () => {
+    setIsSyncing(true);
+    const result = await seedInitialDataToSupabase();
+    if (result.success) {
+      await fetchFromSupabase();
+    }
+    setIsSyncing(false);
+    return result;
+  }, [fetchFromSupabase]);
 
   // Sync to localStorage
   useEffect(() => {
@@ -404,8 +570,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   // Add student
-  const addStudent = (studentData: Omit<Student, 'id' | 'initials'>) => {
-    const newId = `s-${Date.now()}`;
+  const addStudent = async (studentData: Omit<Student, 'id' | 'initials'>) => {
+    // Generate UUID for compatibility with Supabase UUID id column
+    const newId = safeUuid(`s-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`);
     const initials = studentData.name.trim().charAt(0) || 'ط';
     const teacherCost =
       studentData.teacherCost !== undefined && !isNaN(Number(studentData.teacherCost))
@@ -434,10 +601,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       newId,
       `تسجيل الطالب باشتراك شهري ${studentData.subscriptionFee} ر.س ومصروفات معلم ${teacherCost} ر.س بإشراف ${teacher?.name || 'غير محدد'} (الحالة: ${statusLabel})`
     );
+
+    // Save directly to Supabase cloud database
+    try {
+      const row = studentToSupabaseRow(newStudent);
+      const { error } = await supabase.from('students').insert(row);
+      if (error) {
+        console.warn('Supabase student insert error:', error.message);
+      }
+    } catch (e) {
+      console.warn('Supabase connection failed:', e);
+    }
   };
 
   // Update student
-  const updateStudent = (id: string, updates: Partial<Student>) => {
+  const updateStudent = async (id: string, updates: Partial<Student>) => {
     const targetStudent = students.find((s) => s.id === id);
 
     setStudents((prev) =>
@@ -488,10 +666,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       id,
       `عدّل بواسطة ${currentUser.name} (${currentUser.title}): ${details}`
     );
+
+    // Sync updates to Supabase
+    try {
+      const updatedObj = { ...targetStudent, ...updates } as Student;
+      const row = studentToSupabaseRow(updatedObj);
+      await supabase.from('students').update(row).eq('id', row.id);
+    } catch (e) {
+      console.warn('Supabase student update error:', e);
+    }
   };
 
   // Delete student
-  const deleteStudent = (id: string) => {
+  const deleteStudent = async (id: string) => {
     const target = students.find((s) => s.id === id);
     setStudents((prev) => prev.filter((s) => s.id !== id));
     addActivityLog(
@@ -500,11 +687,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       id,
       `تم حذف الطالب نهائياً من النظام بواسطة ${currentUser.name}`
     );
+
+    // Sync delete to Supabase
+    try {
+      const targetUuid = safeUuid(id);
+      await supabase.from('students').delete().eq('id', targetUuid);
+    } catch (e) {
+      console.warn('Supabase student delete error:', e);
+    }
   };
 
   // Add teacher
-  const addTeacher = (teacherData: Omit<Teacher, 'id' | 'initials'>) => {
-    const newId = `t-${Date.now()}`;
+  const addTeacher = async (teacherData: Omit<Teacher, 'id' | 'initials'>) => {
+    const newId = safeUuid(`t-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`);
     const nameParts = teacherData.name.trim().split(/\s+/);
     const initials =
       nameParts.length > 1
@@ -526,10 +721,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       newId,
       `تم تسجيل المعلم ${teacherData.name} (حلقة: ${teacherData.circleName || 'عام'}) بمصروفات شهرية ${teacherData.monthlySalary} ر.س وإسناده إلى ${supervisor?.name || 'غير محدد'}`
     );
+
+    // Sync to Supabase
+    try {
+      const row = teacherToSupabaseRow(newTeacher);
+      await supabase.from('teachers').insert(row);
+    } catch (e) {
+      console.warn('Supabase teacher insert error:', e);
+    }
   };
 
   // Update teacher
-  const updateTeacher = (id: string, updates: Partial<Teacher>) => {
+  const updateTeacher = async (id: string, updates: Partial<Teacher>) => {
     setTeachers((prev) =>
       prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
     );
@@ -540,6 +743,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       id,
       `تم تحديث بيانات المعلم بنجاح بواسطة ${currentUser.name}`
     );
+
+    // Sync update to Supabase
+    try {
+      if (targetTeacher) {
+        const updatedObj = { ...targetTeacher, ...updates } as Teacher;
+        const row = teacherToSupabaseRow(updatedObj);
+        await supabase.from('teachers').update(row).eq('id', row.id);
+      }
+    } catch (e) {
+      console.warn('Supabase teacher update error:', e);
+    }
   };
 
   // Vacation management
@@ -585,9 +799,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     );
   };
 
-  // Add report - CRITICAL: automatically updates student's lastReportDate!
-  const addReport = (reportData: Omit<Report, 'id'>) => {
-    const newId = `rep-${Date.now()}`;
+  // Add report - CRITICAL: automatically updates student's lastReportDate and syncs to Supabase!
+  const addReport = async (reportData: Omit<Report, 'id'>) => {
+    const newId = safeUuid(`rep-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`);
     const newReport: Report = {
       ...reportData,
       id: newId,
@@ -618,10 +832,29 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       reportData.studentId,
       `تم رصد تقرير الـ 8 حصص بتاريخ ${reportData.reportDate} (التقييم: ${reportData.grade || reportData.memorizationScore + '%'}) وتصفير عداد الـ 30 يوماً وبدء دورة 8 حصص جديدة`
     );
+
+    // Sync report and student's new lastReportDate to Supabase
+    try {
+      const repRow = reportToSupabaseRow(newReport);
+      await supabase.from('reports').insert(repRow);
+
+      if (student) {
+        const updatedStudent = {
+          ...student,
+          lastReportDate: reportData.reportDate,
+          surahProgress: reportData.memorizationDetails || student.surahProgress,
+          notes: reportData.teacherNotes || reportData.notes || student.notes,
+        };
+        const studRow = studentToSupabaseRow(updatedStudent);
+        await supabase.from('students').update(studRow).eq('id', studRow.id);
+      }
+    } catch (e) {
+      console.warn('Supabase report sync error:', e);
+    }
   };
 
   // Mark report as sent to parent by director
-  const markReportAsSentToParent = (reportId: string) => {
+  const markReportAsSentToParent = async (reportId: string) => {
     let targetReport = reports.find((r) => r.id === reportId);
     setReports((prev) =>
       prev.map((r) => {
@@ -643,12 +876,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         student?.id,
         `قام المدير العام ${currentUser.name} بإرسال تقرير إنجاز 8 حصص لولي أمر الطالب ${student?.name || ''} عبر واتساب ونقله إلى سجل التقارير المكتملة`
       );
+
+      // Sync status to Supabase
+      try {
+        const repUuid = safeUuid(reportId);
+        await supabase.from('reports').update({ status: 'sent_to_parent' }).eq('id', repUuid);
+      } catch (e) {
+        console.warn('Supabase mark report sent error:', e);
+      }
     }
   };
 
   // Add session log
-  const addSessionLog = (logData: Omit<SessionLog, 'id' | 'createdAt'>) => {
-    const newId = `sess-${Date.now()}`;
+  const addSessionLog = async (logData: Omit<SessionLog, 'id' | 'createdAt'>) => {
+    const newId = safeUuid(`sess-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`);
     const newLog: SessionLog = {
       ...logData,
       id: newId,
@@ -681,6 +922,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       logData.studentId,
       `تم توثيق الحصة رقم ${sessionNum} من 8: حفظ جديد (${logData.newMemorization}) ومراجعة (${logData.revision}) بواسطة ${currentUser.name}`
     );
+
+    // Sync session log to Supabase
+    try {
+      const sessRow = sessionLogToSupabaseRow(newLog);
+      await supabase.from('session_logs').insert(sessRow);
+    } catch (e) {
+      console.warn('Supabase session log sync error:', e);
+    }
   };
 
   // Get student session logs
@@ -1066,6 +1315,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         isLoggedIn,
         login,
         logout,
+        isSupabaseConnected,
+        isSyncing,
+        lastSyncTime,
+        seedSupabaseData,
+        fetchFromSupabase,
         students,
         teachers,
         reports,

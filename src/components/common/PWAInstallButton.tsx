@@ -14,19 +14,6 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [guidePlatform, setGuidePlatform] = useState<'ios' | 'other'>('ios');
 
-  // If already running inside installed standalone PWA, hide or show badge
-  if (isInstalled) {
-    if (variant === 'sidebar') {
-      return (
-        <div className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold flex items-center gap-1.5 justify-center">
-          <span className="material-symbols-outlined text-sm text-emerald-600">check_circle</span>
-          <span>التطبيق مثبت على جهازك</span>
-        </div>
-      );
-    }
-    return null;
-  }
-
   const handleInstallClick = async () => {
     if (isInstallable) {
       const result = await install();
@@ -45,6 +32,19 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
 
   // Render button according to variant
   const renderButton = () => {
+    // If already running inside installed standalone PWA, show badge or nothing
+    if (isInstalled) {
+      if (variant === 'sidebar') {
+        return (
+          <div className="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold flex items-center gap-1.5 justify-center">
+            <span className="material-symbols-outlined text-sm text-emerald-600">check_circle</span>
+            <span>التطبيق مثبت على جهازك</span>
+          </div>
+        );
+      }
+      return null;
+    }
+
     if (variant === 'sidebar') {
       return (
         <button

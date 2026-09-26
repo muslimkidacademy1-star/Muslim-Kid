@@ -25,8 +25,6 @@ export const QuickAddStudentModal: React.FC<QuickAddStudentModalProps> = ({
   const [meetingUrl, setMeetingUrl] = useState('');
   const [notes, setNotes] = useState('');
 
-  if (!isOpen) return null;
-
   const toggleDay = (day: string) => {
     if (selectedDays.includes(day)) {
       setSelectedDays(selectedDays.filter((d) => d !== day));
@@ -58,6 +56,8 @@ export const QuickAddStudentModal: React.FC<QuickAddStudentModalProps> = ({
 
     onClose();
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
