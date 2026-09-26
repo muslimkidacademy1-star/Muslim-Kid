@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Student, Teacher, Supervisor, SessionLog, Report } from '../types';
+import { Student, Teacher, Supervisor, SessionLog, Report, UserRole } from '../types';
 import {
   INITIAL_SUPERVISORS,
   INITIAL_TEACHERS,
@@ -307,4 +307,108 @@ export async function seedInitialDataToSupabase(): Promise<{ success: boolean; m
       message: err.message || 'فشل ترحيل البيانات إلى Supabase',
     };
   }
+}
+
+// Resolve user role and profile from Supabase by email
+export async function resolveUserRoleFromSupabase(userEmail: string): Promise<Supervisor | null> {
+  const cleanEmail = userEmail.trim().toLowerCase();
+
+  // 1. Search in teachers table first
+  try {
+    const { data: tRows, error: tErr } = await supabase
+      .from('teachers')
+      .select('*')
+      .ilike('email', cleanEmail)
+      .limit(1);
+
+    if (!tErr && tRows && tRows.length > 0) {
+      const t = tRows[0];
+      const initials = t.name ? t.name.trim().charAt(0) : 'م';
+      const circleName =
+        t.notes && t.notes.includes('-')
+          ? t.notes.split('-')[0].trim()
+          : t.notes || 'حلقة القرآن';
+
+      return {
+        id: t.id,
+        name: t.name || 'معلم',
+        role: 'teacher',
+        title: 'معلم حلقة قرآن',
+        roleLabel: `معلم - ${circleName}`,
+        department: 'الهيئة التعليمية',
+        initials,
+        email: cleanEmail,
+        teacherId: t.id,
+        assignedTeacherIds: [t.id],
+      };
+    }
+  } catch (e) {
+    console.warn('Error resolving teacher role from Supabase:', e);
+  }
+
+  // 2. Search in supervisors table
+  try {
+    const { data: sRows, error: sErr } = await supabase
+      .from('supervisors')
+      .select('*')
+      .ilike('email', cleanEmail)
+      .limit(1);
+
+    if (!sErr && sRows && sRows.length > 0) {
+      const s = sRows[0];
+      const role: UserRole =
+        s.role === 'manager'
+          ? 'manager'
+          : s.role === 'sub_supervisor'
+          ? 'sub_supervisor'
+          : s.role === 'teacher'
+          ? 'teacher'
+          : 'general_supervisor';
+
+      const initials = s.name ? s.name.trim().charAt(0) : 'م';
+      return {
+        id: s.id,
+        name: s.name || 'مشرف',
+        role,
+        title:
+          role === 'manager'
+            ? 'المدير العام للأكاديمية'
+            : role === 'sub_supervisor'
+            ? 'المشرف التعليمي'
+            : role === 'teacher'
+            ? 'معلم حلقة'
+            : 'المشرف العام',
+        roleLabel:
+          role === 'manager'
+            ? 'الإدارة العامة والمالية'
+            : role === 'sub_supervisor'
+            ? 'الإشراف الفرعي'
+            : role === 'teacher'
+            ? 'معلم حلقة'
+            : 'الإشراف الأكاديمي العام',
+        department:
+          role === 'manager'
+            ? 'مجلس الإدارة والرقابة المالية'
+            : role === 'sub_supervisor'
+            ? 'فريق الإشراف التعليمي'
+            : 'قسم الشؤون التعليمية',
+        initials,
+        email: cleanEmail,
+        assignedTeacherIds: role === 'sub_supervisor' ? ['t1', 't2', 't3', 't4'] : [],
+      };
+    }
+  } catch (e) {
+    console.warn('Error resolving supervisor role from Supabase:', e);
+  }
+
+  // 3. Fallback to mock / initial supervisors if applicable
+  const fallback = INITIAL_SUPERVISORS.find(
+    (sup) =>
+      sup.email.toLowerCase() === cleanEmail ||
+      (cleanEmail.includes('admin') && sup.role === 'manager') ||
+      (cleanEmail.includes('supervisor') && sup.role === 'sub_supervisor') ||
+      (cleanEmail.includes('teacher') && sup.role === 'teacher')
+  );
+
+  return fallback || null;
 }

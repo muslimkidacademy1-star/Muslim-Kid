@@ -32,6 +32,7 @@ import {
   supabaseRowToSessionLog,
   seedInitialDataToSupabase,
   safeUuid,
+  resolveUserRoleFromSupabase,
 } from '../utils/supabaseSync';
 
 export interface ReportStatusInfo {
@@ -50,8 +51,12 @@ interface AppContextType {
   setCurrentUser: (supervisor: Supervisor) => void;
   switchUserRole: (role: UserRole) => void;
   isLoggedIn: boolean;
+  loginWithSupabase: (
+    email: string,
+    password: string
+  ) => Promise<{ success: boolean; error?: string; user?: Supervisor }>;
   login: (identifier: string, roleOrPassword?: string, rememberMe?: boolean) => boolean;
-  logout: () => void;
+  logout: () => Promise<void>;
 
   // Supabase Cloud State & Sync
   isSupabaseConnected: boolean;
@@ -126,6 +131,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   const [currentUser, setCurrentUserState] = useState<Supervisor>(() => {
+    const cachedProfile = localStorage.getItem('mk_user_profile');
+    if (cachedProfile) {
+      try {
+        const parsed = JSON.parse(cachedProfile);
+        if (parsed && parsed.id && parsed.role) {
+          return parsed;
+        }
+      } catch {
+        // fallback
+      }
+    }
     const savedId = localStorage.getItem('mk_current_user_id');
     const found = INITIAL_SUPERVISORS.find((s) => s.id === savedId);
     return found || INITIAL_SUPERVISORS[0]; // defaults to general supervisor
@@ -201,6 +217,46 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(() => {
     return localStorage.getItem('mk_last_supabase_sync') || null;
   });
+
+  // Check and maintain Supabase Auth session on app launch across reloads
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user?.email) {
+        setIsLoggedIn(true);
+        localStorage.setItem('mk_logged_in', 'true');
+        const resolved = await resolveUserRoleFromSupabase(session.user.email);
+        if (resolved) {
+          setCurrentUserState(resolved);
+          localStorage.setItem('mk_user_profile', JSON.stringify(resolved));
+          localStorage.setItem('mk_current_user_id', resolved.id);
+        }
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user?.email) {
+        setIsLoggedIn(true);
+        localStorage.setItem('mk_logged_in', 'true');
+        const resolved = await resolveUserRoleFromSupabase(session.user.email);
+        if (resolved) {
+          setCurrentUserState(resolved);
+          localStorage.setItem('mk_user_profile', JSON.stringify(resolved));
+          localStorage.setItem('mk_current_user_id', resolved.id);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setIsLoggedIn(false);
+        localStorage.setItem('mk_logged_in', 'false');
+        localStorage.removeItem('mk_user_profile');
+        localStorage.removeItem('mk_current_user_id');
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Function to fetch all data from Supabase
   const fetchFromSupabase = useCallback(async () => {
@@ -1059,9 +1115,75 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return true;
   };
 
-  const logout = () => {
+  // Real authentication using Supabase Auth
+  const loginWithSupabase = async (
+    emailInput: string,
+    passwordInput: string
+  ): Promise<{ success: boolean; error?: string; user?: Supervisor }> => {
+    const cleanEmail = emailInput.trim();
+
+    try {
+      // 1. Call real Supabase Auth signInWithPassword
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password: passwordInput,
+      });
+
+      if (error) {
+        console.warn('Supabase signInWithPassword failed:', error.message);
+        return {
+          success: false,
+          error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+        };
+      }
+
+      if (!data.user) {
+        return {
+          success: false,
+          error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+        };
+      }
+
+      const userEmail = data.user.email || cleanEmail;
+
+      // 2. Resolve role from teachers or supervisors table
+      const resolved = await resolveUserRoleFromSupabase(userEmail);
+      if (!resolved) {
+        return {
+          success: false,
+          error: 'الحساب غير مسجل كمعلم أو مشرف في قاعدة بيانات الأكاديمية.',
+        };
+      }
+
+      // 3. Update state and device persistence
+      setCurrentUserState(resolved);
+      setIsLoggedIn(true);
+      localStorage.setItem('mk_logged_in', 'true');
+      localStorage.setItem('mk_user_profile', JSON.stringify(resolved));
+      localStorage.setItem('mk_current_user_id', resolved.id);
+
+      return {
+        success: true,
+        user: resolved,
+      };
+    } catch (e: any) {
+      console.error('Error during Supabase sign in:', e);
+      return {
+        success: false,
+        error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+      };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('Supabase signOut error:', e);
+    }
     setIsLoggedIn(false);
     localStorage.setItem('mk_logged_in', 'false');
+    localStorage.removeItem('mk_user_profile');
     localStorage.removeItem('mk_current_user_id');
   };
 
@@ -1366,6 +1488,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         switchUserRole,
         isLoggedIn,
         login,
+        loginWithSupabase,
         logout,
         isSupabaseConnected,
         isSyncing,
