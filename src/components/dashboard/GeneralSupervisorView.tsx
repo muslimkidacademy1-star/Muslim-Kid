@@ -414,7 +414,8 @@ export const GeneralSupervisorView: React.FC<GeneralSupervisorViewProps> = ({
 
       {/* Main Data Table Container */}
       <div className="rounded-2xl bg-white shadow-xs border border-[#bec8c8]/20 overflow-hidden flex flex-col">
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-right border-collapse">
             <thead>
               <tr className="bg-[#f0f3ff] text-[#6f7979] text-xs font-bold select-none border-b border-[#bec8c8]/20">
@@ -682,6 +683,179 @@ export const GeneralSupervisorView: React.FC<GeneralSupervisorViewProps> = ({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile-First Vertical Cards View (Shown on mobile screens < md) */}
+        <div className="md:hidden flex flex-col divide-y divide-[#bec8c8]/20">
+          {paginatedStudents.length === 0 ? (
+            <div className="p-8 text-center text-[#6f7979] text-sm">
+              لا يوجد طلاب يطابقون شروط البحث والتصفية المحددة.
+            </div>
+          ) : (
+            paginatedStudents.map((student) => {
+              const teacher = getTeacherById(student.teacherId);
+              const reportInfo = getReportStatusInfo(student.lastReportDate);
+              const isRedLate = reportInfo.isOverdue && student.status === 'active';
+              const isYellowWarning = reportInfo.isWarning && student.status === 'active';
+              const isVacation = student.status === 'vacation';
+              const latestReport = reports.find((r) => r.studentId === student.id);
+              const hasTeacherSubmitted = latestReport?.submissionStatus === 'submitted_ready_to_send';
+
+              return (
+                <div
+                  key={`mob-gs-${student.id}`}
+                  className={`p-4 flex flex-col gap-3 transition-colors ${
+                    isRedLate
+                      ? 'bg-[#fff5f5]'
+                      : isYellowWarning
+                      ? 'bg-[#fefce8]'
+                      : isVacation
+                      ? 'bg-[#fffbeb]'
+                      : 'bg-white'
+                  }`}
+                >
+                  {/* Top Row: Initials, Name, Edit, Status Badge */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-base flex-shrink-0 shadow-xs ${
+                          isRedLate
+                            ? 'bg-[#ba1a1a] text-white'
+                            : isYellowWarning
+                            ? 'bg-[#eab308] text-white'
+                            : isVacation
+                            ? 'bg-[#d97706] text-white'
+                            : 'bg-[#005253] text-white'
+                        }`}
+                      >
+                        {student.initials}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className="font-bold text-sm text-[#111c2d] leading-snug">
+                            {student.name}
+                          </h4>
+                          <button
+                            type="button"
+                            onClick={() => onEditStudent(student)}
+                            className="p-1 rounded-md text-[#6f7979] hover:text-[#005253] hover:bg-[#dee8ff] transition-colors"
+                            title="تعديل الطالب"
+                          >
+                            <span className="material-symbols-outlined text-sm">edit</span>
+                          </button>
+                        </div>
+                        <span className="text-xs text-[#526060] block mt-0.5">
+                          {student.surahProgress || teacher?.circleName || 'حلقة القرآن الكريم'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {isVacation ? (
+                        <span className="px-2 py-0.5 rounded-full bg-[#ffdea9] text-[#7d5800] text-[10px] font-bold">
+                          إجازة رسمية
+                        </span>
+                      ) : isRedLate ? (
+                        <span className="px-2 py-0.5 rounded-full bg-[#ffdad6] text-[#ba1a1a] text-[10px] font-bold border border-[#ba1a1a]/30">
+                          {reportInfo.badgeText}
+                        </span>
+                      ) : isYellowWarning ? (
+                        <span className="px-2 py-0.5 rounded-full bg-[#fef9c3] text-[#854d0e] text-[10px] font-bold border border-[#fde047]">
+                          {reportInfo.badgeText}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full bg-[#dcfce7] text-[#15803d] text-[10px] font-bold">
+                          دورة منتظمة
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Submission Alert Banner if Ready to Send */}
+                  {hasTeacherSubmitted && (
+                    <div className="p-2.5 rounded-xl bg-[#dcfce7] border border-[#86efac] text-xs text-[#15803d] font-bold flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-base">verified</span>
+                        <span>سلّمه المعلم ({teacher?.name}) - جاهز للإرسال</span>
+                      </div>
+                      {student.parentPhone && (
+                        <a
+                          href={getReportWhatsAppUrl(student.parentPhone, student.name)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1 bg-[#16a34a] text-white rounded-lg text-[11px] font-bold hover:bg-[#15803d] transition-colors"
+                        >
+                          إرسال
+                        </a>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Academic & Financial Details */}
+                  <div className="grid grid-cols-2 gap-2 bg-[#f0f3ff] p-3 rounded-xl text-xs border border-[#bec8c8]/20">
+                    <div>
+                      <span className="text-[#6f7979] text-[10px] block">المعلم المسند:</span>
+                      <strong className="text-[#111c2d] block truncate">{teacher?.name || 'غير محدد'}</strong>
+                      <span className="text-[10px] text-[#005253] block truncate">{teacher?.circleName}</span>
+                    </div>
+
+                    <div>
+                      <span className="text-[#6f7979] text-[10px] block">تاريخ آخر تقرير:</span>
+                      <span className="font-mono font-bold text-[#111c2d] block dir-ltr text-right">
+                        {student.lastReportDate}
+                      </span>
+                      <span className="text-[10px] text-[#526060]">
+                        دورة 8 حصص ({student.currentCycleSessionsCount || 0}/8)
+                      </span>
+                    </div>
+
+                    <div className="pt-1.5 border-t border-[#bec8c8]/20">
+                      <span className="text-[#6f7979] text-[10px] block">الاشتراك الشهري:</span>
+                      <strong className="text-[#005253]">{student.subscriptionFee} ر.س</strong>
+                    </div>
+
+                    <div className="pt-1.5 border-t border-[#bec8c8]/20">
+                      <span className="text-[#6f7979] text-[10px] block">مصروف المعلم:</span>
+                      <strong className="text-[#3f4949]">{student.teacherCost ?? 120} ر.س</strong>
+                    </div>
+                  </div>
+
+                  {/* Thumb-friendly Big Action Buttons */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <a
+                      href={getParentWhatsAppUrl(student.parentPhone, student.name)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 min-h-[42px] px-3 rounded-xl bg-[#25D366] hover:bg-[#1eb757] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                      title="مراسلة ولي الأمر عبر واتساب"
+                    >
+                      <span className="material-symbols-outlined text-base">chat</span>
+                      <span>ولي الأمر</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => onAddReport(student)}
+                      className="min-h-[42px] px-3 rounded-xl bg-[#005253] hover:bg-[#186b6d] text-white text-xs font-bold flex items-center justify-center gap-1 shadow-xs transition-colors cursor-pointer"
+                      title="تسجيل تقرير 8 حصص"
+                    >
+                      <span className="material-symbols-outlined text-base">rate_review</span>
+                      <span>+ تقرير 8 حصص</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => onManageVacation(student)}
+                      className="min-h-[42px] w-10 rounded-xl bg-white border border-[#bec8c8]/30 hover:bg-[#ffdea9]/30 text-[#7d5800] flex items-center justify-center transition-colors cursor-pointer"
+                      title="إدارة الإجازات"
+                    >
+                      <span className="material-symbols-outlined text-base">flight_takeoff</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* Table Pagination & Footer */}

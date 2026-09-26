@@ -72,6 +72,7 @@ interface AppContextType {
   setStudentVacation: (id: string, startDate: string, endDate: string, type: string, notes?: string) => void;
   endStudentVacation: (id: string) => void;
   addReport: (report: Omit<Report, 'id'>) => void;
+  markReportAsSentToParent: (reportId: string) => void;
   addActivityLog: (action: string, studentName?: string, studentId?: string, details?: string) => void;
   addSessionLog: (log: Omit<SessionLog, 'id' | 'createdAt'>) => void;
   getStudentSessionLogs: (studentId: string) => SessionLog[];
@@ -619,6 +620,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     );
   };
 
+  // Mark report as sent to parent by director
+  const markReportAsSentToParent = (reportId: string) => {
+    let targetReport = reports.find((r) => r.id === reportId);
+    setReports((prev) =>
+      prev.map((r) => {
+        if (r.id === reportId) {
+          return {
+            ...r,
+            submissionStatus: 'sent_to_parent',
+          };
+        }
+        return r;
+      })
+    );
+
+    if (targetReport) {
+      const student = students.find((s) => s.id === targetReport?.studentId);
+      addActivityLog(
+        'إرسال التقرير لولي الأمر',
+        student?.name,
+        student?.id,
+        `قام المدير العام ${currentUser.name} بإرسال تقرير إنجاز 8 حصص لولي أمر الطالب ${student?.name || ''} عبر واتساب ونقله إلى سجل التقارير المكتملة`
+      );
+    }
+  };
+
   // Add session log
   const addSessionLog = (logData: Omit<SessionLog, 'id' | 'createdAt'>) => {
     const newId = `sess-${Date.now()}`;
@@ -1064,6 +1091,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setStudentVacation,
         endStudentVacation,
         addReport,
+        markReportAsSentToParent,
         addActivityLog,
         addSessionLog,
         getStudentSessionLogs,

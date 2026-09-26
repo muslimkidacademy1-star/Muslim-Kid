@@ -460,8 +460,9 @@ export const TeachersListView: React.FC = () => {
           </button>
         </div>
       ) : viewMode === 'table' ? (
-        /* Primary Table View */
-        <div className="bg-white rounded-2xl border border-[#bec8c8]/20 shadow-xs overflow-hidden">
+        <>
+          {/* Primary Table View (Desktop / Tablet) */}
+          <div className="hidden md:block bg-white rounded-2xl border border-[#bec8c8]/20 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-right border-collapse">
               <thead>
@@ -618,6 +619,128 @@ export const TeachersListView: React.FC = () => {
             </table>
           </div>
         </div>
+
+        {/* Mobile Vertical Cards Fallback (Shown on < md) */}
+        <div className="md:hidden flex flex-col gap-3.5">
+          {filteredTeachers.map((teacher) => {
+            const supervisor = getSupervisorById(teacher.supervisorId);
+            const stats = teacherStats.get(teacher.id) || {
+              totalStudents: 0,
+              overdueCount: 0,
+              activeStudents: 0,
+              vacationStudents: 0,
+            };
+            const hasOverdue = stats.overdueCount > 0;
+
+            return (
+              <div
+                key={`mob-t-${teacher.id}`}
+                className={`bg-white rounded-2xl p-4 border shadow-2xs flex flex-col gap-3 transition-all ${
+                  hasOverdue ? 'border-red-200 bg-red-50/15' : 'border-[#bec8c8]/25'
+                }`}
+              >
+                {/* Header */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-xl bg-[#005253] text-white flex items-center justify-center font-bold text-base shadow-xs flex-shrink-0">
+                      {teacher.initials}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm text-[#111c2d]">{teacher.name}</h3>
+                      <span className="text-xs text-[#005253] font-semibold block">
+                        {teacher.circleName}
+                      </span>
+                      <span className="text-[11px] text-[#6f7979]">{teacher.track}</span>
+                    </div>
+                  </div>
+                  {hasOverdue ? (
+                    <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-bold flex items-center gap-1">
+                      <span className="material-symbols-outlined text-xs">warning</span>
+                      <span>تأخير</span>
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold">
+                      منتظم
+                    </span>
+                  )}
+                </div>
+
+                {/* Supervisor */}
+                <div className="p-2.5 bg-[#f0f3ff] rounded-xl text-xs flex items-center justify-between">
+                  <span className="text-[#6f7979]">المشرف المسؤول:</span>
+                  <span className="font-bold text-[#111c2d]">
+                    {supervisor?.name || 'غير محدد'}
+                  </span>
+                </div>
+
+                {/* Students breakdown */}
+                <div className="grid grid-cols-3 gap-2 p-2.5 bg-[#f0f3ff] rounded-xl text-center text-xs">
+                  <div>
+                    <span className="text-[#6f7979] block text-[10px]">الطلاب</span>
+                    <span className="font-bold text-[#111c2d] text-sm">
+                      {stats.totalStudents}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[#6f7979] block text-[10px]">نشط</span>
+                    <span className="font-bold text-[#005253] text-sm">
+                      {stats.activeStudents}
+                    </span>
+                  </div>
+                  <div>
+                    <span
+                      className={`block text-[10px] ${
+                        hasOverdue ? 'text-red-700 font-bold' : 'text-[#6f7979]'
+                      }`}
+                    >
+                      متأخر
+                    </span>
+                    <span
+                      className={`text-sm font-black ${
+                        hasOverdue ? 'text-[#ba1a1a]' : 'text-green-700'
+                      }`}
+                    >
+                      {stats.overdueCount}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Manager Salary */}
+                {currentUser.role === 'manager' && (
+                  <div className="flex items-center justify-between text-xs pt-1 border-t border-[#bec8c8]/20">
+                    <span className="text-[#6f7979]">المصروفات الشهرية:</span>
+                    <span className="font-bold text-[#005253] text-sm">
+                      {teacher.monthlySalary.toLocaleString('ar-SA')} ر.س
+                    </span>
+                  </div>
+                )}
+
+                {/* Touch buttons */}
+                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[#bec8c8]/20">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTeacherForStudents(teacher)}
+                    className="h-10 rounded-xl bg-[#dee8ff] active:bg-[#c9daff] text-[#005253] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-base">school</span>
+                    <span>الطلاب ({stats.totalStudents})</span>
+                  </button>
+
+                  <a
+                    href={`https://wa.me/966${teacher.phone.replace(/^0+/, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="h-10 rounded-xl bg-[#dcfce7] active:bg-[#bbf7d0] text-[#15803d] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-base">chat</span>
+                    <span>محادثة واتساب</span>
+                  </a>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </>
       ) : (
         /* Alternate Cards View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

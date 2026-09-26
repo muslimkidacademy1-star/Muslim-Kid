@@ -166,7 +166,7 @@ export const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
             </div>
           </div>
 
-          {/* Progress & Financial Info */}
+          {/* Progress & Academic / Schedule Info */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="p-3.5 rounded-xl bg-[#f0f3ff] border border-[#bec8c8]/20">
               <span className="text-[11px] text-[#6f7979] block mb-1">
@@ -176,26 +176,54 @@ export const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
                 {student.surahProgress || 'جزء عمّ'}
               </span>
               <span className="text-[11px] text-[#6f7979] block mt-1">
-                تاريخ الاشتراك: {student.subscriptionDate}
+                تاريخ البدء: {student.subscriptionDate}
               </span>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-[#f0f3ff] border border-[#bec8c8]/20">
-              <span className="text-[11px] text-[#6f7979] block mb-1">
-                الرسوم والمستحقات
-              </span>
-              <div className="flex items-baseline gap-1">
-                <span className="font-bold text-sm text-[#005253]">
-                  {student.subscriptionFee}
+            {/* If sub_supervisor or teacher: hide financial fees completely, show schedule & time */}
+            {currentUser.role === 'sub_supervisor' || currentUser.role === 'teacher' ? (
+              <div className="p-3.5 rounded-xl bg-[#f0f3ff] border border-[#bec8c8]/20">
+                <span className="text-[11px] text-[#6f7979] block mb-1">
+                  مواعيد الحصص الأسبوعية
                 </span>
-                <span className="text-xs text-[#6f7979]">ر.س اشتراك شهري</span>
+                <div className="font-bold text-xs text-[#005253]">
+                  {student.sessionTime || '04:30 م بتوقيت مكة'}
+                </div>
+                <span className="text-[11px] text-[#526060] block mt-1">
+                  {student.scheduleDays && student.scheduleDays.length > 0
+                    ? student.scheduleDays.join('، ')
+                    : 'الأحد، الثلاثاء، الخميس'}
+                </span>
+                {student.meetingUrl && (
+                  <a
+                    href={student.meetingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] text-[#0284c7] font-bold mt-1.5 hover:underline"
+                  >
+                    <span className="material-symbols-outlined text-xs">videocam</span>
+                    <span>غرفة التسميع (Zoom)</span>
+                  </a>
+                )}
               </div>
-              {currentUser.role === 'manager' && student.teacherCost !== undefined && (
-                <span className="text-[11px] text-[#6f7979] block mt-1">
-                  مصروف المعلم: {student.teacherCost} ر.س
+            ) : (
+              <div className="p-3.5 rounded-xl bg-[#f0f3ff] border border-[#bec8c8]/20">
+                <span className="text-[11px] text-[#6f7979] block mb-1">
+                  الرسوم والمستحقات
                 </span>
-              )}
-            </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="font-bold text-sm text-[#005253]">
+                    {student.subscriptionFee}
+                  </span>
+                  <span className="text-xs text-[#6f7979]">ر.س اشتراك شهري</span>
+                </div>
+                {currentUser.role === 'manager' && student.teacherCost !== undefined && (
+                  <span className="text-[11px] text-[#6f7979] block mt-1">
+                    مصروف المعلم: {student.teacherCost} ر.س
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Notes */}

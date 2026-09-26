@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../../context/AppContext';
+import { PWAInstallButton } from '../common/PWAInstallButton';
 
 export type NavigationTab =
   | 'dashboard'
@@ -140,12 +141,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Quick Role Fast Switcher in Sidebar */}
           <div className="px-4 py-2 border-t border-[#bec8c8]/20">
+            <div className="mb-2.5">
+              <PWAInstallButton variant="sidebar" />
+            </div>
             <span className="text-[11px] text-[#6f7979] font-semibold block mb-1.5 px-1">
               تجربة مستويات الصلاحيات:
             </span>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
               <button
-                onClick={() => switchUserRole('general_supervisor')}
+                onClick={() => {
+                  switchUserRole('general_supervisor');
+                  if (onCloseMobile) onCloseMobile();
+                }}
                 className={`py-1 px-1.5 rounded-lg text-[10px] font-bold transition-colors text-center ${
                   currentUser.role === 'general_supervisor'
                     ? 'bg-[#005253] text-white shadow-xs'
@@ -156,7 +163,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 مشرف عام
               </button>
               <button
-                onClick={() => switchUserRole('sub_supervisor')}
+                onClick={() => {
+                  switchUserRole('sub_supervisor');
+                  if (onCloseMobile) onCloseMobile();
+                }}
                 className={`py-1 px-1.5 rounded-lg text-[10px] font-bold transition-colors text-center ${
                   currentUser.role === 'sub_supervisor'
                     ? 'bg-[#005253] text-white shadow-xs'
@@ -167,7 +177,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 مشرف فرعي
               </button>
               <button
-                onClick={() => switchUserRole('manager')}
+                onClick={() => {
+                  switchUserRole('manager');
+                  if (onCloseMobile) onCloseMobile();
+                }}
                 className={`py-1 px-1.5 rounded-lg text-[10px] font-bold transition-colors text-center ${
                   currentUser.role === 'manager'
                     ? 'bg-[#005253] text-white shadow-xs'
@@ -178,7 +191,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 المدير
               </button>
               <button
-                onClick={() => switchUserRole('teacher')}
+                onClick={() => {
+                  switchUserRole('teacher');
+                  if (onCloseMobile) onCloseMobile();
+                }}
                 className={`py-1 px-1.5 rounded-lg text-[10px] font-bold transition-colors text-center ${
                   currentUser.role === 'teacher'
                     ? 'bg-[#005253] text-white shadow-xs'
@@ -190,6 +206,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
             </div>
           </div>
+        </div>
+
+        {/* PWA Install in Sidebar */}
+        <div className="px-4">
+          <PWAInstallButton variant="sidebar" />
         </div>
 
         {/* Bottom Section: Version & Logout */}

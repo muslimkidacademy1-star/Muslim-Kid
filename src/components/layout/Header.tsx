@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { UserRole } from '../../types';
+import { PWAInstallButton } from '../common/PWAInstallButton';
 
 interface HeaderProps {
   activeTab?: string;
@@ -131,8 +132,11 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       )}
 
-      {/* Left Side in RTL: Search, Role Switcher, Notifications, Profile */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      {/* Left Side in RTL: PWA Install, Search, Role Switcher, Notifications, Profile */}
+      <div className="flex items-center gap-1.5 sm:gap-2.5">
+        {/* PWA Install Button */}
+        <PWAInstallButton variant="header" />
+
         {/* Search Bar */}
         <div className="relative hidden md:block">
           <span className="material-symbols-outlined absolute right-3 top-2.5 text-[#6f7979] text-lg pointer-events-none">

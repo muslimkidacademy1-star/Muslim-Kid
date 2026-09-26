@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#005253" />
+      <stop offset="50%" stop-color="#003d3e" />
+      <stop offset="100%" stop-color="#002526" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="50%" stop-color="#eab308" />
+      <stop offset="100%" stop-color="#ca8a04" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Rounded Squircle -->
+  <rect width="512" height="512" rx="110" fill="url(#bgGrad)" />
+
+  <!-- Outer Decorative Ring -->
+  <circle cx="256" cy="256" r="215" fill="none" stroke="#a6eff1" stroke-opacity="0.15" stroke-width="4" stroke-dasharray="8 8" />
+  <circle cx="256" cy="256" r="200" fill="none" stroke="url(#goldGrad)" stroke-opacity="0.3" stroke-width="2" />
+
+  <!-- Dome & Minaret Silhouette -->
+  <path d="M256 100 C240 135 210 160 210 185 L302 185 C302 160 272 135 256 100 Z" fill="url(#goldGrad)" />
+  <circle cx="256" cy="85" r="8" fill="#fde047" />
+
+  <!-- Open Quran Book Pages -->
+  <g transform="translate(106, 180)">
+    <!-- Right Page (Arabic primary) -->
+    <path d="M150 160 C150 160 190 145 260 152 C270 154 280 150 280 140 L280 20 C280 10 270 12 260 10 C190 3 150 20 150 20 Z" fill="#ffffff" />
+    <!-- Left Page -->
+    <path d="M150 160 C150 160 110 145 40 152 C30 154 20 150 20 140 L20 20 C20 10 30 12 40 10 C110 3 150 20 150 20 Z" fill="#f1f5f9" />
+
+    <!-- Quran Spine Shadow -->
+    <path d="M146 16 C149 16 151 16 154 16 L154 164 L146 164 Z" fill="#cbd5e1" />
+
+    <!-- Page Decorative Lines -->
+    <line x1="55" y1="45" x2="125" y2="45" stroke="#005253" stroke-opacity="0.35" stroke-width="4" stroke-linecap="round" />
+    <line x1="45" y1="70" x2="125" y2="70" stroke="#005253" stroke-opacity="0.25" stroke-width="4" stroke-linecap="round" />
+    <line x1="50" y1="95" x2="125" y2="95" stroke="#005253" stroke-opacity="0.25" stroke-width="4" stroke-linecap="round" />
+    <line x1="60" y1="120" x2="125" y2="120" stroke="#005253" stroke-opacity="0.25" stroke-width="4" stroke-linecap="round" />
+
+    <line x1="175" y1="45" x2="245" y2="45" stroke="#005253" stroke-opacity="0.35" stroke-width="4" stroke-linecap="round" />
+    <line x1="175" y1="70" x2="255" y2="70" stroke="#005253" stroke-opacity="0.25" stroke-width="4" stroke-linecap="round" />
+    <line x1="175" y1="95" x2="250" y2="95" stroke="#005253" stroke-opacity="0.25" stroke-width="4" stroke-linecap="round" />
+    <line x1="175" y1="120" x2="240" y2="120" stroke="#005253" stroke-opacity="0.25" stroke-width="4" stroke-linecap="round" />
+
+    <!-- Quran Stand (Rihal) Base -->
+    <path d="M70 162 L40 215 L80 215 L110 162 Z" fill="url(#goldGrad)" opacity="0.9" />
+    <path d="M230 162 L260 215 L220 215 L190 162 Z" fill="url(#goldGrad)" opacity="0.9" />
+    <path d="M110 162 L150 195 L190 162 Z" fill="#a16207" />
+  </g>
+
+  <!-- Stars / Radiance -->
+  <circle cx="160" cy="140" r="5" fill="#fde047" opacity="0.8" />
+  <circle cx="352" cy="140" r="5" fill="#fde047" opacity="0.8" />
+  <polygon points="256,410 262,425 278,425 265,435 270,450 256,440 242,450 247,435 234,425 250,425" fill="url(#goldGrad)" />
+</svg>
