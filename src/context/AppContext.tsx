@@ -1190,8 +1190,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Role-filtered students and teachers
   const visibleTeachers = useMemo(() => {
     if (currentUser.role === 'teacher') {
-      const myTeacherId = currentUser.teacherId || currentUser.assignedTeacherIds?.[0] || 't1';
-      return teachers.filter((t) => t.id === myTeacherId);
+      const myTeacherId = currentUser.teacherId || currentUser.assignedTeacherIds?.[0] || currentUser.id;
+      return teachers.filter((t) => t.id === myTeacherId || (currentUser.name && t.name === currentUser.name));
     }
     if (currentUser.role === 'sub_supervisor') {
       return teachers.filter(
@@ -1205,8 +1205,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const visibleStudents = useMemo(() => {
     if (currentUser.role === 'teacher') {
-      const myTeacherId = currentUser.teacherId || currentUser.assignedTeacherIds?.[0] || 't1';
-      return students.filter((s) => s.teacherId === myTeacherId);
+      const myTeacherId = currentUser.teacherId || currentUser.assignedTeacherIds?.[0] || currentUser.id;
+      const validTeacherIds = new Set([
+        myTeacherId,
+        currentUser.id,
+        ...(currentUser.assignedTeacherIds || []),
+        ...visibleTeachers.map((vt) => vt.id),
+      ]);
+      return students.filter((s) => validTeacherIds.has(s.teacherId));
     }
     if (currentUser.role === 'sub_supervisor') {
       const allowedTeacherIds = new Set(visibleTeachers.map((t) => t.id));

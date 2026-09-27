@@ -11,6 +11,7 @@ export const TeacherView: React.FC = () => {
   const {
     currentUser,
     visibleStudents,
+    teachers,
     getTeacherById,
     getDaysSinceLastReport,
     getReportStatusInfo,
@@ -26,8 +27,16 @@ export const TeacherView: React.FC = () => {
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
 
   // The logged-in teacher's details
-  const teacherId = currentUser.teacherId || currentUser.assignedTeacherIds?.[0] || 't1';
-  const teacherObj = getTeacherById(teacherId);
+  const teacherId = currentUser.teacherId || currentUser.assignedTeacherIds?.[0] || currentUser.id;
+  const teacherObj =
+    getTeacherById(teacherId) ||
+    getTeacherById(currentUser.id) ||
+    (teachers && teachers.find((t) => t.id === teacherId || t.name === currentUser.name));
+
+  const teacherCircleName =
+    teacherObj?.circleName ||
+    (currentUser.roleLabel ? currentUser.roleLabel.replace(/^معلم\s*-\s*/, '') : '') ||
+    'حلقة القرآن';
 
   // Filter students belonging to this teacher
   const teacherStudents = visibleStudents.filter((s) => {
@@ -93,7 +102,7 @@ export const TeacherView: React.FC = () => {
                 <span>بوابة المعلم اليومية</span>
               </span>
               <span className="px-2.5 py-0.5 rounded-full bg-[#fef9c3] text-[#854d0e] text-xs font-bold">
-                {teacherObj?.circleName || 'حلقة البخاري'}
+                {teacherCircleName}
               </span>
               <span className="px-2.5 py-0.5 rounded-full bg-[#6ff7f8] text-[#003738] text-xs font-black">
                 اليوم: {todayWeekday}
