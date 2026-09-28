@@ -8,7 +8,7 @@ import { ManagerView } from './components/dashboard/ManagerView';
 import { TeacherView } from './components/dashboard/TeacherView';
 import { TeachersListView } from './components/views/TeachersListView';
 import { ReportsListView } from './components/views/ReportsListView';
-import { SettingsView } from './components/views/SettingsView';
+import { StudentsListView } from './components/views/StudentsListView';
 import { AddStudentModal } from './components/modals/AddStudentModal';
 import { EditStudentModal } from './components/modals/EditStudentModal';
 import { AddReportModal } from './components/modals/AddReportModal';
@@ -32,8 +32,8 @@ function AuthenticatedApp() {
 
   // Reset tab to dashboard if teacher has no access to specific tabs
   React.useEffect(() => {
-    if (currentUser.role === 'teacher' && (activeTab === 'teachers' || activeTab === 'settings')) {
-      setActiveTab('dashboard');
+    if (currentUser.role === 'teacher' && activeTab === 'teachers') {
+      setActiveTab('students');
     }
   }, [currentUser.role, activeTab]);
 
@@ -68,18 +68,10 @@ function AuthenticatedApp() {
       return <TeacherView />;
     }
 
-    if (activeTab === 'teachers') {
-      return <TeachersListView />;
-    }
-    if (activeTab === 'reports') {
-      return <ReportsListView />;
-    }
-    if (activeTab === 'settings') {
-      return <SettingsView />;
-    }
-    if (activeTab === 'logs') {
+    // Screens for Manager & Supervisors
+    if (activeTab === 'students') {
       return (
-        <GeneralSupervisorView
+        <StudentsListView
           onAddStudent={handleOpenAddStudent}
           onEditStudent={handleOpenEdit}
           onAddReport={handleOpenReport}
@@ -88,8 +80,16 @@ function AuthenticatedApp() {
       );
     }
 
-    // Default 'dashboard' or 'students':
-    // The role dynamically decides which dashboard view is rendered!
+    if (activeTab === 'teachers') {
+      return <TeachersListView />;
+    }
+
+    if (activeTab === 'reports') {
+      return <ReportsListView />;
+    }
+
+    // Default 'dashboard' or 'logs':
+    // The role dynamically decides which executive dashboard view is rendered!
     if (currentUser.role === 'sub_supervisor') {
       return (
         <EducationalSupervisorView
@@ -113,7 +113,7 @@ function AuthenticatedApp() {
       );
     }
 
-    // Default General Supervisor
+    // Default General Supervisor Dashboard
     return (
       <GeneralSupervisorView
         onAddStudent={handleOpenAddStudent}

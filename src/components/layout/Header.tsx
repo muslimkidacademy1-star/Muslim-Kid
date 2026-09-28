@@ -5,7 +5,7 @@ import { PWAInstallButton } from '../common/PWAInstallButton';
 
 interface HeaderProps {
   activeTab?: string;
-  onSelectTab?: (tab: 'students' | 'teachers') => void;
+  onSelectTab?: (tab: 'dashboard' | 'students' | 'teachers') => void;
   onSearch?: (term: string) => void;
   onOpenActivityLog?: () => void;
   onOpenAddStudent?: () => void;
@@ -13,7 +13,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  activeTab = 'students',
+  activeTab = 'dashboard',
   onSelectTab,
   onSearch,
   onOpenActivityLog,
@@ -30,10 +30,6 @@ export const Header: React.FC<HeaderProps> = ({
     markNotificationAsRead,
     markAllNotificationsAsRead,
     logout,
-    resetDatabase,
-    isSupabaseConnected,
-    isSyncing,
-    fetchFromSupabase,
   } = useApp();
 
   const currentRole: UserRole = currentUser.role;
@@ -96,13 +92,25 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Screen Switcher Tab (شاشة الطلاب vs شاشة المعلمين) - مخفية لدور المعلم */}
+      {/* Screen Switcher Tab (لوحة التحكم vs شاشة الطلاب vs شاشة المعلمين) - مخفية لدور المعلم */}
       {currentUser.role !== 'teacher' && (
-        <div className="flex items-center bg-[#f0f3ff] p-1 rounded-xl border border-[#bec8c8]/30 shadow-xs">
+        <div className="hidden sm:flex items-center bg-[#f0f3ff] p-1 rounded-xl border border-[#bec8c8]/30 shadow-xs">
+          <button
+            onClick={() => onSelectTab && onSelectTab('dashboard')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'dashboard'
+                ? 'bg-[#005253] text-white shadow-xs'
+                : 'text-[#3f4949] hover:text-[#005253] hover:bg-white/60'
+            }`}
+            title="الانتقال إلى اللوحة التنفيذية"
+          >
+            <span className="material-symbols-outlined text-base">dashboard</span>
+            <span>لوحة التحكم</span>
+          </button>
           <button
             onClick={() => onSelectTab && onSelectTab('students')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              activeTab !== 'teachers'
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'students'
                 ? 'bg-[#005253] text-white shadow-xs'
                 : 'text-[#3f4949] hover:text-[#005253] hover:bg-white/60'
             }`}
@@ -113,7 +121,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
           <button
             onClick={() => onSelectTab && onSelectTab('teachers')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'teachers'
                 ? 'bg-[#005253] text-white shadow-xs'
                 : 'text-[#3f4949] hover:text-[#005253] hover:bg-white/60'
@@ -126,22 +134,8 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       )}
 
-      {/* Left Side in RTL: PWA Install, Cloud Sync, Search, Role Switcher, Notifications, Profile */}
+      {/* Left Side in RTL: PWA Install, Search, Notifications, Profile Badge & Logout */}
       <div className="flex items-center gap-1.5 sm:gap-2.5">
-        {/* Supabase Cloud Connection Indicator Pill */}
-        <button
-          onClick={() => fetchFromSupabase()}
-          disabled={isSyncing}
-          className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#e7eeff] hover:bg-[#dee8ff] text-[#005253] text-[11px] font-bold border border-[#bec8c8]/30 transition-all cursor-pointer"
-          title="متصل بسحابة Supabase - انقر للمزامنة الفورية"
-        >
-          <span className={`w-2 h-2 rounded-full ${isSupabaseConnected ? 'bg-emerald-500' : 'bg-amber-500'} ${isSyncing ? 'animate-ping' : ''}`}></span>
-          <span className="material-symbols-outlined text-sm">
-            {isSyncing ? 'sync' : 'cloud_done'}
-          </span>
-          <span className="hidden xl:inline">{isSyncing ? 'مزامنة...' : 'سحابة Supabase'}</span>
-        </button>
-
         {/* PWA Install Button */}
         <PWAInstallButton variant="header" />
 

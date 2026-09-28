@@ -8,8 +8,7 @@ export type NavigationTab =
   | 'students'
   | 'teachers'
   | 'reports'
-  | 'logs'
-  | 'settings';
+  | 'logs';
 
 interface SidebarProps {
   activeTab: NavigationTab;
@@ -32,18 +31,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems = isTeacher
     ? [
         { id: 'students' as NavigationTab, label: 'طلابي (حلقة القرآن)', icon: 'school' },
-        { id: 'reports' as NavigationTab, label: 'تقارير الإنجاز', icon: 'monitoring' },
+        { id: 'reports' as NavigationTab, label: 'شاشة التقارير', icon: 'monitoring' },
       ]
     : [
+        {
+          id: 'dashboard' as NavigationTab,
+          label:
+            currentUser.role === 'manager'
+              ? 'لوحة التحكم التنفيذية'
+              : currentUser.role === 'general_supervisor'
+              ? 'لوحة الإشراف العام'
+              : 'لوحة المتابعة الإشرافية',
+          icon: 'dashboard',
+        },
         { id: 'students' as NavigationTab, label: 'شاشة الطلاب', icon: 'school' },
         { id: 'teachers' as NavigationTab, label: 'شاشة المعلمين', icon: 'badge' },
-        { id: 'reports' as NavigationTab, label: 'التقارير والمتابعة', icon: 'monitoring' },
-        { id: 'logs' as NavigationTab, label: 'سجل التعديلات', icon: 'history' },
-        {
-          id: 'settings' as NavigationTab,
-          label: currentUser.role === 'manager' ? 'الميزانية والإعدادات' : 'الإعدادات',
-          icon: currentUser.role === 'manager' ? 'account_balance' : 'settings',
-        },
+        { id: 'reports' as NavigationTab, label: 'شاشة التقارير', icon: 'monitoring' },
+        { id: 'logs' as NavigationTab, label: 'سجل العمليات', icon: 'history' },
       ];
 
   return (
@@ -120,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {navItems.map((item) => {
               const isActive =
                 activeTab === item.id ||
-                (item.id === 'students' && activeTab === 'dashboard');
+                (isTeacher && item.id === 'students' && activeTab === 'dashboard');
               return (
                 <button
                   key={item.id}
