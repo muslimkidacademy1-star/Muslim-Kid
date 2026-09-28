@@ -146,6 +146,39 @@ export const TeacherView: React.FC = () => {
         </div>
       </div>
 
+      {/* Welcome Banner when Teacher has no students yet */}
+      {teacherStudents.length === 0 && (
+        <div className="bg-linear-to-r from-emerald-50 via-[#f0fdfa] to-teal-50 border-2 border-emerald-300/80 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-5 animate-in fade-in duration-300">
+          <div className="flex items-center gap-4 text-center md:text-right">
+            <div className="w-16 h-16 rounded-2xl bg-[#005253] text-white flex items-center justify-center shadow-md flex-shrink-0">
+              <span className="material-symbols-outlined text-3xl text-[#a6eff1]">menu_book</span>
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-100 text-[#005253] text-xs font-bold mb-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>بداية مباركة في رحاب القرآن</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-[#003738] mb-1">
+                أهلاً بك في حلقتك!
+              </h2>
+              <p className="text-sm sm:text-base font-bold text-[#111c2d] leading-relaxed">
+                لا يوجد طلاب مضافون بعد، ابدأ بإضافة طلاب حلقتك عبر زر '+ إضافة طالب جديد'
+              </p>
+              <p className="text-xs text-[#526060] mt-1 leading-relaxed">
+                ستتمكن من رصد الحضور والتسميع اليومي للطلاب، ومتابعة حفظهم ومراجعتهم، وتوليد تقارير دورة الـ 8 حصص تلقائياً ومشاركتها مع الإدارة وأولياء الأمور.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsAddStudentModalOpen(true)}
+            className="px-6 py-3.5 rounded-2xl bg-[#005253] hover:bg-[#186b6d] text-white font-black text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2 cursor-pointer flex-shrink-0 active:scale-98"
+          >
+            <span className="material-symbols-outlined text-xl text-[#a6eff1]">person_add</span>
+            <span>+ إضافة طالب جديد</span>
+          </button>
+        </div>
+      )}
+
       {/* PROMINENT CARD: حصص اليوم (Today's Classes) */}
       <div className="bg-linear-to-br from-[#ffffff] via-[#f4fbfa] to-[#e6f7f6] rounded-3xl p-5 sm:p-6 border-2 border-[#005253]/30 shadow-md">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#bec8c8]/30">
@@ -423,20 +456,25 @@ export const TeacherView: React.FC = () => {
       {/* Students Grid / Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {teacherStudents.length === 0 ? (
-          <div className="col-span-full bg-white rounded-3xl p-12 text-center border border-[#bec8c8]/20 flex flex-col items-center justify-center">
-            <span className="material-symbols-outlined text-5xl text-[#6f7979]/40 mb-2 block">
-              group_off
-            </span>
-            <p className="text-base font-bold text-[#111c2d]">لا يوجد طلاب في هذه الحلقة حالياً</p>
-            <p className="text-xs text-[#6f7979] mt-1 mb-4">
-              يمكنك إضافة أول طالب لحلقتك الآن بسهولة بالضغط على الزر أدناه
+          <div className="col-span-full bg-white rounded-3xl p-10 sm:p-14 text-center border-2 border-dashed border-[#bec8c8]/40 flex flex-col items-center justify-center gap-3">
+            <div className="w-16 h-16 rounded-2xl bg-[#e7eeff] text-[#005253] flex items-center justify-center">
+              <span className="material-symbols-outlined text-3xl">school</span>
+            </div>
+            <h3 className="text-lg sm:text-xl font-black text-[#111c2d]">
+              أهلاً بك في حلقتك!
+            </h3>
+            <p className="text-sm font-bold text-[#005253] max-w-md">
+              لا يوجد طلاب مضافون بعد، ابدأ بإضافة طلاب حلقتك عبر زر '+ إضافة طالب جديد'
+            </p>
+            <p className="text-xs text-[#6f7979] max-w-md">
+              جميع بيانات الطلاب وجداول الحصص ومتابعة التسميع تحفظ تلقائياً في قاعدة بيانات الأكاديمية السحابية.
             </p>
             <button
               onClick={() => setIsAddStudentModalOpen(true)}
-              className="px-5 py-2.5 rounded-xl bg-[#005253] text-white font-bold text-xs hover:bg-[#186b6d] transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+              className="mt-2 px-6 py-3 rounded-2xl bg-[#005253] text-white font-bold text-xs sm:text-sm hover:bg-[#186b6d] transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-98"
             >
-              <span className="material-symbols-outlined text-base">person_add</span>
-              <span>+ إضافة طالب جديد للحلقة</span>
+              <span className="material-symbols-outlined text-lg text-[#a6eff1]">person_add</span>
+              <span>+ إضافة طالب جديد</span>
             </button>
           </div>
         ) : (

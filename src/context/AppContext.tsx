@@ -11,15 +11,7 @@ import {
   FinancialMonth,
   SessionLog,
 } from '../types';
-import {
-  INITIAL_SUPERVISORS,
-  INITIAL_TEACHERS,
-  SEEDED_STUDENTS,
-  INITIAL_REPORTS,
-  INITIAL_ACTIVITY_LOGS,
-  INITIAL_FINANCIAL_MONTHS,
-  INITIAL_SESSION_LOGS,
-} from '../mock/initialData';
+import { INITIAL_SUPERVISORS } from '../mock/initialData';
 import { supabase } from '../utils/supabase';
 import {
   studentToSupabaseRow,
@@ -147,68 +139,100 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return found || INITIAL_SUPERVISORS[0]; // defaults to general supervisor
   });
 
-  // 2. Data states with LocalStorage persistence (v3 incorporates live relative dates and schedules)
+  // Purge legacy mock data cache once so the app is 100% clean and connected to Supabase
+  if (typeof window !== 'undefined' && !localStorage.getItem('mk_clean_db_purged_v5')) {
+    localStorage.removeItem('mk_students_v3');
+    localStorage.removeItem('mk_reports_v2');
+    localStorage.removeItem('mk_session_logs_v1');
+    localStorage.removeItem('mk_activity_logs_v2');
+    localStorage.removeItem('mk_teachers_v2');
+    localStorage.setItem('mk_clean_db_purged_v5', 'true');
+  }
+
+  // 2. Data states - Clean, real-data-only collections from Supabase
   const [students, setStudents] = useState<Student[]>(() => {
     const saved = localStorage.getItem('mk_students_v3');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].scheduleDays) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          if (parsed.some((s) => s.id === 's1' || (s.id && s.id.startsWith('s-full-')))) {
+            return [];
+          }
           return parsed;
         }
       } catch {
         // fallback
       }
     }
-    return SEEDED_STUDENTS;
+    return [];
   });
 
   const [teachers, setTeachers] = useState<Teacher[]>(() => {
     const saved = localStorage.getItem('mk_teachers_v2');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          if (parsed.some((t) => t.id === 't1' || t.id === 't2')) {
+            return [];
+          }
+          return parsed;
+        }
       } catch {
         // fallback
       }
     }
-    return INITIAL_TEACHERS;
+    return [];
   });
 
   const [reports, setReports] = useState<Report[]>(() => {
     const saved = localStorage.getItem('mk_reports_v2');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          if (parsed.some((r) => r.id === 'rep-1' || r.id === 'rep-2')) {
+            return [];
+          }
+          return parsed;
+        }
       } catch {
         // fallback
       }
     }
-    return INITIAL_REPORTS;
+    return [];
   });
 
   const [sessionLogs, setSessionLogs] = useState<SessionLog[]>(() => {
     const saved = localStorage.getItem('mk_session_logs_v1');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          if (parsed.some((sess) => sess.id === 'sess-s1-1')) {
+            return [];
+          }
+          return parsed;
+        }
       } catch {
         // fallback
       }
     }
-    return INITIAL_SESSION_LOGS;
+    return [];
   });
 
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => {
     const saved = localStorage.getItem('mk_activity_logs_v2');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
       } catch {
         // fallback
       }
     }
-    return INITIAL_ACTIVITY_LOGS;
+    return [];
   });
 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -274,25 +298,29 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (repRes.error) throw repRes.error;
       if (sessRes.error) throw sessRes.error;
 
-      // Only update local state if Supabase has data
-      if (teachRes.data && teachRes.data.length > 0) {
+      // Sync local state with exact Supabase data
+      if (teachRes.data) {
         const loadedTeachers = teachRes.data.map(supabaseRowToTeacher);
         setTeachers(loadedTeachers);
+        localStorage.setItem('mk_teachers_v2', JSON.stringify(loadedTeachers));
       }
 
-      if (studRes.data && studRes.data.length > 0) {
+      if (studRes.data) {
         const loadedStudents = studRes.data.map(supabaseRowToStudent);
         setStudents(loadedStudents);
+        localStorage.setItem('mk_students_v3', JSON.stringify(loadedStudents));
       }
 
-      if (repRes.data && repRes.data.length > 0) {
+      if (repRes.data) {
         const loadedReports = repRes.data.map(supabaseRowToReport);
         setReports(loadedReports);
+        localStorage.setItem('mk_reports_v2', JSON.stringify(loadedReports));
       }
 
-      if (sessRes.data && sessRes.data.length > 0) {
+      if (sessRes.data) {
         const loadedSessions = sessRes.data.map(supabaseRowToSessionLog);
         setSessionLogs(loadedSessions);
+        localStorage.setItem('mk_session_logs_v1', JSON.stringify(loadedSessions));
       }
 
       const nowTime = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
@@ -1267,6 +1295,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return parseFloat(((netProfit / totalSubscriptions) * 100).toFixed(1));
   }, [totalSubscriptions, netProfit]);
 
+  // Real financial months computed dynamically from live active subscriptions and teacher costs
+  const financialMonths = useMemo<FinancialMonth[]>(() => {
+    if (totalSubscriptions === 0 && totalTeacherCosts === 0) {
+      return [];
+    }
+    return [
+      {
+        monthName: 'الشهر الحالي',
+        subscriptions: totalSubscriptions,
+        teacherCosts: totalTeacherCosts,
+        netProfit,
+      },
+    ];
+  }, [totalSubscriptions, totalTeacherCosts, netProfit]);
+
   // Export to Excel spreadsheet (.xlsx format using xlsx library with RTL & column formatting)
   const exportToExcel = (customList?: Student[]) => {
     const exportData = customList || visibleStudents;
@@ -1472,16 +1515,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     localStorage.removeItem('mk_session_logs_v1');
     localStorage.removeItem('mk_activity_logs_v1');
     localStorage.removeItem('mk_activity_logs_v2');
-    setStudents(SEEDED_STUDENTS);
-    setTeachers(INITIAL_TEACHERS);
-    setReports(INITIAL_REPORTS);
-    setSessionLogs(INITIAL_SESSION_LOGS);
-    setActivityLogs(INITIAL_ACTIVITY_LOGS);
+    setStudents([]);
+    setTeachers([]);
+    setReports([]);
+    setSessionLogs([]);
+    setActivityLogs([]);
     addActivityLog(
       'استعادة ضبط المصنع لقاعدة البيانات',
       undefined,
       undefined,
-      'تمت إعادة تعيين البيانات التجريبية إلى الوضع الافتراضي الأولي'
+      'تم تفريغ البيانات المحلية وإعادة المزامنة النظيفة'
     );
   };
 
@@ -1506,7 +1549,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         reports,
         sessionLogs,
         activityLogs,
-        financialMonths: INITIAL_FINANCIAL_MONTHS,
+        financialMonths,
         notifications,
         visibleStudents,
         visibleTeachers,

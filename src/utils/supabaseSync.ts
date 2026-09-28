@@ -1,12 +1,6 @@
 import { supabase } from './supabase';
 import { Student, Teacher, Supervisor, SessionLog, Report, UserRole } from '../types';
-import {
-  INITIAL_SUPERVISORS,
-  INITIAL_TEACHERS,
-  SEEDED_STUDENTS,
-  INITIAL_REPORTS,
-  INITIAL_SESSION_LOGS,
-} from '../mock/initialData';
+import { INITIAL_SUPERVISORS } from '../mock/initialData';
 
 // Generate consistent UUID v4 from string seed so deterministic mapping is preserved across initial seed
 export function stringToUuid(str: string): string {
@@ -244,67 +238,20 @@ export function supabaseRowToReport(row: any): Report {
   };
 }
 
-// Seed initial data to Supabase
+// Verify clean Supabase connection without injecting mock data
 export async function seedInitialDataToSupabase(): Promise<{ success: boolean; message: string }> {
   try {
-    // 1. Prepare and insert supervisors
-    const supRows = INITIAL_SUPERVISORS.map(supervisorToSupabaseRow);
-    const { error: supErr } = await supabase.from('supervisors').upsert(supRows, { onConflict: 'id' });
-    if (supErr) throw new Error(`Supervisors seed error: ${supErr.message}`);
-
-    // Map supervisor IDs
-    const supMap: Record<string, string> = {};
-    INITIAL_SUPERVISORS.forEach((s) => {
-      supMap[s.id] = safeUuid(s.id);
-    });
-
-    // 2. Prepare and insert teachers
-    const teachRows = INITIAL_TEACHERS.map((t) => teacherToSupabaseRow(t, supMap));
-    const { error: teachErr } = await supabase.from('teachers').upsert(teachRows, { onConflict: 'id' });
-    if (teachErr) throw new Error(`Teachers seed error: ${teachErr.message}`);
-
-    // Map teacher IDs
-    const teacherMap: Record<string, string> = {};
-    INITIAL_TEACHERS.forEach((t) => {
-      teacherMap[t.id] = safeUuid(t.id);
-    });
-
-    // 3. Prepare and insert students
-    const studentRows = SEEDED_STUDENTS.map((s) => studentToSupabaseRow(s, teacherMap));
-    const { error: studErr } = await supabase.from('students').upsert(studentRows, { onConflict: 'id' });
-    if (studErr) throw new Error(`Students seed error: ${studErr.message}`);
-
-    // Map student IDs
-    const studentMap: Record<string, string> = {};
-    SEEDED_STUDENTS.forEach((s) => {
-      studentMap[s.id] = safeUuid(s.id);
-    });
-
-    // 4. Clean and re-insert session logs and reports
-    await supabase.from('reports').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('session_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-
-    const sessionRows = INITIAL_SESSION_LOGS.map((sess) =>
-      sessionLogToSupabaseRow(sess, studentMap, teacherMap)
-    );
-    const { error: sessErr } = await supabase.from('session_logs').insert(sessionRows);
-    if (sessErr) throw new Error(`Session logs seed error: ${sessErr.message}`);
-
-    const reportRows = INITIAL_REPORTS.map((r) =>
-      reportToSupabaseRow(r, studentMap, teacherMap)
-    );
-    const { error: repErr } = await supabase.from('reports').insert(reportRows);
-    if (repErr) throw new Error(`Reports seed error: ${repErr.message}`);
-
+    const { count: studentCount } = await supabase.from('students').select('*', { count: 'exact', head: true });
+    const { count: teacherCount } = await supabase.from('teachers').select('*', { count: 'exact', head: true });
     return {
       success: true,
-      message: `تم بنجاح رفع ومزامنة البيانات التجريبية إلى Supabase (${supRows.length} مشرفين، ${teachRows.length} معلماً، ${studentRows.length} طالباً، ${sessionRows.length} حصة، ${reportRows.length} تقارير)!`,
+      message: `قاعدة بيانات Supabase جاهزة ونظيفة (${teacherCount || 0} معلماً، ${studentCount || 0} طالباً). تم إيقاف أي بيانات وهمية.`,
     };
   } catch (err: any) {
-    console.error('Seed error:', err);
+    console.error('Database check error:', err);
     return {
       success: false,
-      message: err.message || 'فشل ترحيل البيانات إلى Supabase',
+      message: err.message || 'فشل الاتصال بقاعدة بيانات Supabase',
     };
   }
 }

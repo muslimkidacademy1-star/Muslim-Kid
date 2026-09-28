@@ -39,6 +39,7 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
     markReportAsSentToParent,
     currentUser,
     seedSupabaseData,
+    fetchFromSupabase,
     isSyncing,
   } = useApp();
 
@@ -167,14 +168,14 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
     addActivityLog('تصدير الميزانية المالية', undefined, undefined, 'تم تصدير كشف الميزانية وصافي الأرباح لآخر 6 أشهر بصيغة Excel');
   };
 
-  const avgSubscription = activeStudentsCount > 0 ? Math.round(totalSubscriptions / activeStudentsCount) : 268;
-  const coverageRatio = totalTeacherCosts > 0 ? Math.round((totalSubscriptions / totalTeacherCosts) * 100) : 166;
+  const avgSubscription = activeStudentsCount > 0 ? Math.round(totalSubscriptions / activeStudentsCount) : 0;
+  const coverageRatio = totalTeacherCosts > 0 ? Math.round((totalSubscriptions / totalTeacherCosts) * 100) : 0;
 
   // Student active vs overdue percentage calculations
-  const totalTrackedStudents = Math.max(1, students.length);
-  const activePercent = Math.round((activeStudentsCount / totalTrackedStudents) * 100);
-  const overduePercent = Math.round((overdueStudentsCount / totalTrackedStudents) * 100);
-  const vacationPercent = Math.round((vacationStudentsCount / totalTrackedStudents) * 100);
+  const totalTrackedStudents = students.length;
+  const activePercent = totalTrackedStudents > 0 ? Math.round((activeStudentsCount / totalTrackedStudents) * 100) : 0;
+  const overduePercent = totalTrackedStudents > 0 ? Math.round((overdueStudentsCount / totalTrackedStudents) * 100) : 0;
+  const vacationPercent = totalTrackedStudents > 0 ? Math.round((vacationStudentsCount / totalTrackedStudents) * 100) : 0;
 
   return (
     <div className="flex flex-col w-full gap-6 text-right" dir="rtl">
@@ -243,15 +244,15 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
           </button>
 
           <button
-            onClick={handleSeedData}
+            onClick={fetchFromSupabase}
             disabled={isSyncing}
             className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-[#a6eff1] border border-white/25 text-xs sm:text-sm font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
-            title="مزامنة البيانات التجريبية إلى قاعدة بيانات Supabase السحابية"
+            title="تحديث البيانات فورياً من قاعدة بيانات Supabase"
           >
             <span className={`material-symbols-outlined text-lg ${isSyncing ? 'animate-spin' : ''}`}>
-              cloud_sync
+              refresh
             </span>
-            <span>{isSyncing ? 'جارِ المزامنة...' : 'مزامنة البيانات التجريبية إلى Supabase'}</span>
+            <span>{isSyncing ? 'جارِ التحديث...' : 'تحديث البيانات من Supabase'}</span>
           </button>
 
           <button
@@ -290,8 +291,8 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
               <span className="material-symbols-outlined text-2xl">account_balance_wallet</span>
             </div>
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#005253]/10 text-[#005253] text-xs font-bold">
-              <span className="material-symbols-outlined text-xs">trending_up</span>
-              +12.4%
+              <span className="material-symbols-outlined text-xs">account_balance_wallet</span>
+              {activeStudentsCount > 0 ? `${activeStudentsCount} اشتراك نشط` : '0 اشتراكات'}
             </span>
           </div>
           <div className="flex flex-col gap-1 relative z-10">
@@ -301,7 +302,9 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
               <span className="text-sm font-bold text-[#6f7979]">ر.س</span>
             </div>
             <span className="text-xs text-[#005253] font-semibold mt-1">
-              مقارنة بالشهر السابق (41,150 ر.س)
+              {totalSubscriptions > 0
+                ? `مجموع رسوم الاشتراكات للطلاب المنتظمين (${activeStudentsCount} طالباً)`
+                : 'لا توجد اشتراكات مسجلة بعد'}
             </span>
           </div>
         </div>
@@ -324,7 +327,9 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
               <span className="text-sm font-bold text-[#6f7979]">ر.س</span>
             </div>
             <span className="text-xs text-[#6f7979] font-semibold mt-1">
-              مستحقات {teachers.length} معلماً ومحفظاً للشهر الحالي
+              {teachers.length > 0
+                ? `مستحقات ${teachers.length} معلماً ومحفظاً للشهر الحالي`
+                : 'لا يوجد معلمون مسجلون بعد'}
             </span>
           </div>
         </div>
@@ -347,7 +352,11 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
               <span className="text-sm font-bold text-[#7d5800]">ر.س</span>
             </div>
             <span className="text-xs text-[#7d5800] font-semibold mt-1">
-              فائض تشغيلي مرتفع ومؤشر مالي ممتاز
+              {totalSubscriptions > 0 || totalTeacherCosts > 0
+                ? netProfit >= 0
+                  ? 'الفائض التشغيلي بعد سداد رواتب الكادر'
+                  : 'عجز تشغيلي يحتاج زيادة الاشتراكات'
+                : 'لا توجد عمليات مالية مسجلة بعد'}
             </span>
           </div>
         </div>
@@ -360,7 +369,7 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
               <span className="material-symbols-outlined text-2xl">local_library</span>
             </div>
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#dee8ff] text-[#005253] text-xs font-bold">
-              {activePercent}% انتظام
+              {students.length > 0 ? `${activePercent}% انتظام` : '0%'}
             </span>
           </div>
           <div className="flex flex-col gap-1 relative z-10">
@@ -370,7 +379,9 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
               <span className="text-sm font-bold text-[#6f7979]">طالباً</span>
             </div>
             <span className="text-xs text-[#6f7979] font-semibold mt-1">
-              من أصل {students.length} مسجلاً ({vacationStudentsCount} في إجازة، {overdueStudentsCount} يحتاج متابعة)
+              {students.length > 0
+                ? `من أصل ${students.length} مسجلاً (${vacationStudentsCount} في إجازة، ${overdueStudentsCount} يحتاج متابعة)`
+                : 'لم يتم تسجيل أي طلاب في النظام بعد'}
             </span>
           </div>
         </div>
@@ -566,73 +577,57 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
             </div>
           </div>
 
-          {/* Responsive SVG Chart */}
-          <div className="w-full overflow-x-auto pt-2">
-            <div className="min-w-[550px] h-64 flex flex-col justify-between py-2 relative">
-              <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 720 220">
-                <line className="text-[#e7eeff]" stroke="currentColor" strokeDasharray="4 4" x1="0" x2="720" y1="20" y2="20" />
-                <line className="text-[#e7eeff]" stroke="currentColor" strokeDasharray="4 4" x1="0" x2="720" y1="70" y2="70" />
-                <line className="text-[#e7eeff]" stroke="currentColor" strokeDasharray="4 4" x1="0" x2="720" y1="120" y2="120" />
-                <line className="text-[#e7eeff]" stroke="currentColor" strokeDasharray="4 4" x1="0" x2="720" y1="170" y2="170" />
-                <line className="text-[#bec8c8]/40" stroke="currentColor" x1="0" x2="720" y1="210" y2="210" />
-
-                <text className="text-[#6f7979] text-[11px] font-sans" fill="currentColor" textAnchor="end" x="715" y="24">50k</text>
-                <text className="text-[#6f7979] text-[11px] font-sans" fill="currentColor" textAnchor="end" x="715" y="74">37.5k</text>
-                <text className="text-[#6f7979] text-[11px] font-sans" fill="currentColor" textAnchor="end" x="715" y="124">25k</text>
-                <text className="text-[#6f7979] text-[11px] font-sans" fill="currentColor" textAnchor="end" x="715" y="174">12.5k</text>
-
-                {/* 6 Data Groups */}
-                <g transform="translate(60, 0)">
-                  <rect className="fill-[#005253] hover:opacity-85 transition-opacity" height="144" rx="4" width="26" x="0" y="66" />
-                  <rect className="fill-[#cfdaf2] hover:opacity-85 transition-opacity" height="96" rx="4" width="26" x="30" y="114" />
-                </g>
-                <g transform="translate(165, 0)">
-                  <rect className="fill-[#005253] hover:opacity-85 transition-opacity" height="154" rx="4" width="26" x="0" y="56" />
-                  <rect className="fill-[#cfdaf2] hover:opacity-85 transition-opacity" height="99" rx="4" width="26" x="30" y="111" />
-                </g>
-                <g transform="translate(270, 0)">
-                  <rect className="fill-[#005253] hover:opacity-85 transition-opacity" height="165" rx="4" width="26" x="0" y="45" />
-                  <rect className="fill-[#cfdaf2] hover:opacity-85 transition-opacity" height="102" rx="4" width="26" x="30" y="108" />
-                </g>
-                <g transform="translate(375, 0)">
-                  <rect className="fill-[#005253] hover:opacity-85 transition-opacity" height="172" rx="4" width="26" x="0" y="38" />
-                  <rect className="fill-[#cfdaf2] hover:opacity-85 transition-opacity" height="104" rx="4" width="26" x="30" y="106" />
-                </g>
-                <g transform="translate(480, 0)">
-                  <rect className="fill-[#005253] hover:opacity-85 transition-opacity" height="174" rx="4" width="26" x="0" y="36" />
-                  <rect className="fill-[#cfdaf2] hover:opacity-85 transition-opacity" height="108" rx="4" width="26" x="30" y="102" />
-                </g>
-                <g transform="translate(585, 0)">
-                  <rect className="fill-[#005253] hover:opacity-85 transition-opacity" height="185" rx="4" width="26" x="0" y="25" />
-                  <rect className="fill-[#cfdaf2] hover:opacity-85 transition-opacity" height="111" rx="4" width="26" x="30" y="99" />
-                </g>
-
-                {/* Dotted Profit Trendline */}
-                <polyline
-                  className="text-[#7d5800]"
-                  fill="none"
-                  points="88,162 193,155 298,147 403,142 508,143 613,136"
-                  stroke="currentColor"
-                  strokeDasharray="5 4"
-                  strokeWidth="3"
-                />
-
-                <circle className="fill-[#7d5800] stroke-white stroke-2" cx="88" cy="162" r="4" />
-                <circle className="fill-[#7d5800] stroke-white stroke-2" cx="193" cy="155" r="4" />
-                <circle className="fill-[#7d5800] stroke-white stroke-2" cx="298" cy="147" r="4" />
-                <circle className="fill-[#7d5800] stroke-white stroke-2" cx="403" cy="142" r="4" />
-                <circle className="fill-[#7d5800] stroke-white stroke-2" cx="508" cy="143" r="4" />
-                <circle className="fill-[#7d5800] stroke-white stroke-2" cx="613" cy="136" r="5" />
-
-                <text className="text-[#111c2d] font-semibold text-xs" fill="currentColor" textAnchor="middle" x="88" y="230">محرم</text>
-                <text className="text-[#111c2d] font-semibold text-xs" fill="currentColor" textAnchor="middle" x="193" y="230">صفر</text>
-                <text className="text-[#111c2d] font-semibold text-xs" fill="currentColor" textAnchor="middle" x="298" y="230">ربيع الأول</text>
-                <text className="text-[#111c2d] font-semibold text-xs" fill="currentColor" textAnchor="middle" x="403" y="230">ربيع الثاني</text>
-                <text className="text-[#111c2d] font-semibold text-xs" fill="currentColor" textAnchor="middle" x="508" y="230">جمادى</text>
-                <text className="text-[#005253] font-bold text-xs" fill="currentColor" textAnchor="middle" x="613" y="230">رجب / شعبان</text>
-              </svg>
+          {/* Responsive Live Financial Chart */}
+          {totalSubscriptions === 0 && totalTeacherCosts === 0 ? (
+            <div className="w-full h-56 rounded-2xl bg-[#f0f3ff]/60 border-2 border-dashed border-[#bec8c8]/30 flex flex-col items-center justify-center text-center p-6 gap-2">
+              <span className="material-symbols-outlined text-4xl text-[#005253]/40">
+                analytics
+              </span>
+              <h4 className="text-sm font-bold text-[#111c2d]">
+                لا توجد بيانات مالية مسجلة بعد
+              </h4>
+              <p className="text-xs text-[#6f7979] max-w-sm">
+                سيتم بناء الرسم البياني والمؤشرات تلقائياً فور تسجيل أول اشتراك فعلي أو اعتماد رواتب المعلمين.
+              </p>
             </div>
-          </div>
+          ) : (
+            <div className="w-full overflow-x-auto pt-2">
+              <div className="min-w-[450px] h-56 flex flex-col justify-between py-2 relative">
+                <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 600 200">
+                  <line className="text-[#e7eeff]" stroke="currentColor" strokeDasharray="4 4" x1="0" x2="600" y1="20" y2="20" />
+                  <line className="text-[#e7eeff]" stroke="currentColor" strokeDasharray="4 4" x1="0" x2="600" y1="80" y2="80" />
+                  <line className="text-[#e7eeff]" stroke="currentColor" strokeDasharray="4 4" x1="0" x2="600" y1="140" y2="140" />
+                  <line className="text-[#bec8c8]/40" stroke="currentColor" x1="0" x2="600" y1="175" y2="175" />
+
+                  {/* Single live period representation */}
+                  <g transform="translate(230, 0)">
+                    {/* Subscriptions Bar */}
+                    <rect
+                      className="fill-[#005253] hover:opacity-85 transition-opacity"
+                      height={Math.min(130, Math.max(10, (totalSubscriptions / (Math.max(totalSubscriptions, totalTeacherCosts) || 1)) * 130))}
+                      rx="6"
+                      width="35"
+                      x="0"
+                      y={175 - Math.min(130, Math.max(10, (totalSubscriptions / (Math.max(totalSubscriptions, totalTeacherCosts) || 1)) * 130))}
+                    />
+                    {/* Costs Bar */}
+                    <rect
+                      className="fill-[#cfdaf2] hover:opacity-85 transition-opacity"
+                      height={Math.min(130, Math.max(10, (totalTeacherCosts / (Math.max(totalSubscriptions, totalTeacherCosts) || 1)) * 130))}
+                      rx="6"
+                      width="35"
+                      x="45"
+                      y={175 - Math.min(130, Math.max(10, (totalTeacherCosts / (Math.max(totalSubscriptions, totalTeacherCosts) || 1)) * 130))}
+                    />
+                  </g>
+
+                  <text className="text-[#005253] font-bold text-xs" fill="currentColor" textAnchor="middle" x="270" y="195">
+                    الفترة الحالية الفعلية
+                  </text>
+                </svg>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Chart 2: Students Attendance & Status Ratio Donut/Bars */}
@@ -870,7 +865,18 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-[#bec8c8]/20">
-              {filteredStudents.slice(0, 12).map((student) => {
+              {filteredStudents.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-[#6f7979]">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <span className="material-symbols-outlined text-4xl text-[#005253]/30">group_off</span>
+                      <p className="text-sm font-bold text-[#111c2d]">لا يوجد طلاب مسجلون في النظام حالياً</p>
+                      <p className="text-xs text-[#6f7979]">ابدأ بإضافة أول طالب عبر زر "+ طالب جديد" أعلاه، وسيتم حفظ بياناته مباشرة في Supabase.</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredStudents.slice(0, 12).map((student) => {
                 const teacher = getTeacherById(student.teacherId);
                 const reportInfo = getReportStatusInfo(student.lastReportDate);
                 const isRedLate = reportInfo.isOverdue && student.status === 'active';
@@ -1008,7 +1014,7 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>
