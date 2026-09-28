@@ -135,12 +135,20 @@ export const ReportsListView: React.FC = () => {
 
       {/* Reports Feed */}
       <div className="space-y-4">
-        {filteredReports.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center border border-[#bec8c8]/20">
+        {reports.length === 0 ? (
+          <div className="bg-white rounded-2xl p-12 text-center border border-[#bec8c8]/20 flex flex-col items-center justify-center">
+            <span className="material-symbols-outlined text-5xl text-[#6f7979]/40 mb-2 block">
+              inbox
+            </span>
+            <p className="text-base font-bold text-[#111c2d]">لا توجد تقارير واردة حالياً</p>
+            <p className="text-xs text-[#6f7979] mt-1">ستظهر هنا تقارير دورة الـ 8 حصص المعتمدة والمحفوظة فور تسجيلها ومزامنتها من Supabase</p>
+          </div>
+        ) : filteredReports.length === 0 ? (
+          <div className="bg-white rounded-2xl p-12 text-center border border-[#bec8c8]/20 flex flex-col items-center justify-center">
             <span className="material-symbols-outlined text-5xl text-[#6f7979]/40 mb-2 block">
               description
             </span>
-            <p className="text-base font-bold text-[#111c2d]">لا توجد تقارير مطابقة</p>
+            <p className="text-base font-bold text-[#111c2d]">لا توجد نتائج بحث مطابقة</p>
             <p className="text-xs text-[#6f7979] mt-1">جرّب تعديل كلمات البحث أو تصفية التقدير</p>
           </div>
         ) : (

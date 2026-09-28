@@ -139,27 +139,46 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return found || INITIAL_SUPERVISORS[0]; // defaults to general supervisor
   });
 
-  // Purge legacy mock data cache once so the app is 100% clean and connected to Supabase
-  if (typeof window !== 'undefined' && !localStorage.getItem('mk_clean_db_purged_v5')) {
-    localStorage.removeItem('mk_students_v3');
-    localStorage.removeItem('mk_reports_v2');
-    localStorage.removeItem('mk_session_logs_v1');
-    localStorage.removeItem('mk_activity_logs_v2');
-    localStorage.removeItem('mk_teachers_v2');
-    localStorage.setItem('mk_clean_db_purged_v5', 'true');
+  // Complete purge of all legacy mock localStorage keys
+  if (typeof window !== 'undefined') {
+    const legacyKeys = [
+      'mk_students_v1',
+      'mk_students_v2',
+      'mk_students_v3',
+      'mk_teachers_v1',
+      'mk_teachers_v2',
+      'mk_reports_v1',
+      'mk_reports_v2',
+      'mk_session_logs_v1',
+      'mk_activity_logs_v1',
+      'mk_activity_logs_v2',
+      'mk_clean_db_purged_v1',
+      'mk_clean_db_purged_v2',
+      'mk_clean_db_purged_v3',
+      'mk_clean_db_purged_v4',
+      'mk_clean_db_purged_v5',
+    ];
+    legacyKeys.forEach((k) => localStorage.removeItem(k));
   }
 
   // 2. Data states - Clean, real-data-only collections from Supabase
   const [students, setStudents] = useState<Student[]>(() => {
-    const saved = localStorage.getItem('mk_students_v3');
+    const saved = localStorage.getItem('mk_students_live_prod');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          if (parsed.some((s) => s.id === 's1' || (s.id && s.id.startsWith('s-full-')))) {
-            return [];
-          }
-          return parsed;
+        if (Array.isArray(parsed)) {
+          // Double-check: filter out any legacy mock students
+          const clean = parsed.filter(
+            (s) =>
+              s &&
+              s.name &&
+              !s.name.includes('عمر أحمد') &&
+              !s.name.includes('مريم عبد الله') &&
+              !s.name.includes('خالد وليد') &&
+              s.id !== 's1'
+          );
+          return clean;
         }
       } catch {
         // fallback
@@ -169,14 +188,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   const [teachers, setTeachers] = useState<Teacher[]>(() => {
-    const saved = localStorage.getItem('mk_teachers_v2');
+    const saved = localStorage.getItem('mk_teachers_live_prod');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          if (parsed.some((t) => t.id === 't1' || t.id === 't2')) {
-            return [];
-          }
           return parsed;
         }
       } catch {
@@ -187,14 +203,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   const [reports, setReports] = useState<Report[]>(() => {
-    const saved = localStorage.getItem('mk_reports_v2');
+    const saved = localStorage.getItem('mk_reports_live_prod');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          if (parsed.some((r) => r.id === 'rep-1' || r.id === 'rep-2')) {
-            return [];
-          }
           return parsed;
         }
       } catch {
@@ -205,14 +218,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   const [sessionLogs, setSessionLogs] = useState<SessionLog[]>(() => {
-    const saved = localStorage.getItem('mk_session_logs_v1');
+    const saved = localStorage.getItem('mk_session_logs_live_prod');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          if (parsed.some((sess) => sess.id === 'sess-s1-1')) {
-            return [];
-          }
           return parsed;
         }
       } catch {
@@ -223,7 +233,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => {
-    const saved = localStorage.getItem('mk_activity_logs_v2');
+    const saved = localStorage.getItem('mk_activity_logs_live_prod');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -302,25 +312,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (teachRes.data) {
         const loadedTeachers = teachRes.data.map(supabaseRowToTeacher);
         setTeachers(loadedTeachers);
-        localStorage.setItem('mk_teachers_v2', JSON.stringify(loadedTeachers));
+        localStorage.setItem('mk_teachers_live_prod', JSON.stringify(loadedTeachers));
       }
 
       if (studRes.data) {
         const loadedStudents = studRes.data.map(supabaseRowToStudent);
         setStudents(loadedStudents);
-        localStorage.setItem('mk_students_v3', JSON.stringify(loadedStudents));
+        localStorage.setItem('mk_students_live_prod', JSON.stringify(loadedStudents));
       }
 
       if (repRes.data) {
         const loadedReports = repRes.data.map(supabaseRowToReport);
         setReports(loadedReports);
-        localStorage.setItem('mk_reports_v2', JSON.stringify(loadedReports));
+        localStorage.setItem('mk_reports_live_prod', JSON.stringify(loadedReports));
       }
 
       if (sessRes.data) {
         const loadedSessions = sessRes.data.map(supabaseRowToSessionLog);
         setSessionLogs(loadedSessions);
-        localStorage.setItem('mk_session_logs_v1', JSON.stringify(loadedSessions));
+        localStorage.setItem('mk_session_logs_live_prod', JSON.stringify(loadedSessions));
       }
 
       const nowTime = new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
@@ -429,23 +439,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Sync to localStorage
   useEffect(() => {
-    localStorage.setItem('mk_students_v3', JSON.stringify(students));
+    localStorage.setItem('mk_students_live_prod', JSON.stringify(students));
   }, [students]);
 
   useEffect(() => {
-    localStorage.setItem('mk_session_logs_v1', JSON.stringify(sessionLogs));
+    localStorage.setItem('mk_session_logs_live_prod', JSON.stringify(sessionLogs));
   }, [sessionLogs]);
 
   useEffect(() => {
-    localStorage.setItem('mk_teachers_v2', JSON.stringify(teachers));
+    localStorage.setItem('mk_teachers_live_prod', JSON.stringify(teachers));
   }, [teachers]);
 
   useEffect(() => {
-    localStorage.setItem('mk_reports_v2', JSON.stringify(reports));
+    localStorage.setItem('mk_reports_live_prod', JSON.stringify(reports));
   }, [reports]);
 
   useEffect(() => {
-    localStorage.setItem('mk_activity_logs_v2', JSON.stringify(activityLogs));
+    localStorage.setItem('mk_activity_logs_live_prod', JSON.stringify(activityLogs));
   }, [activityLogs]);
 
   useEffect(() => {
@@ -1506,15 +1516,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const resetDatabase = () => {
-    localStorage.removeItem('mk_students_v1');
-    localStorage.removeItem('mk_students_v2');
-    localStorage.removeItem('mk_students_v3');
-    localStorage.removeItem('mk_teachers_v2');
-    localStorage.removeItem('mk_reports_v1');
-    localStorage.removeItem('mk_reports_v2');
-    localStorage.removeItem('mk_session_logs_v1');
-    localStorage.removeItem('mk_activity_logs_v1');
-    localStorage.removeItem('mk_activity_logs_v2');
+    localStorage.removeItem('mk_students_live_prod');
+    localStorage.removeItem('mk_teachers_live_prod');
+    localStorage.removeItem('mk_reports_live_prod');
+    localStorage.removeItem('mk_session_logs_live_prod');
+    localStorage.removeItem('mk_activity_logs_live_prod');
     setStudents([]);
     setTeachers([]);
     setReports([]);

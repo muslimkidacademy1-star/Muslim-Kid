@@ -160,7 +160,11 @@ export const GeneralSupervisorView: React.FC<GeneralSupervisorViewProps> = ({
             </div>
             <div className="flex items-center gap-1 mt-1 text-[#005253] font-semibold text-xs">
               <span className="material-symbols-outlined text-sm">trending_up</span>
-              <span>+12 هذا الشهر</span>
+              <span>
+                {students.length > 0
+                  ? `${activeStudentsCount} طالب منتظم ونشط`
+                  : 'لا يوجد طلاب مضافون بعد'}
+              </span>
             </div>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-[#005253]/10 flex items-center justify-center text-[#005253]">
@@ -430,9 +434,25 @@ export const GeneralSupervisorView: React.FC<GeneralSupervisorViewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-[#e7eeff] text-sm">
-              {paginatedStudents.length === 0 ? (
+              {students.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-[#6f7979] text-sm">
+                  <td colSpan={8} className="py-14 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <span className="material-symbols-outlined text-4xl text-[#6f7979]/40">
+                        group_off
+                      </span>
+                      <p className="text-base font-bold text-[#111c2d]">
+                        لا يوجد طلاب مضافون بعد
+                      </p>
+                      <p className="text-xs text-[#6f7979]">
+                        يمكنك إضافة طلاب جدد أو مزامنة بيانات الطلاب المسجلين عبر Supabase
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ) : paginatedStudents.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-[#6f7979] text-sm font-medium">
                     لا يوجد طلاب يطابقون شروط البحث والتصفية المحددة.
                   </td>
                 </tr>
@@ -687,7 +707,19 @@ export const GeneralSupervisorView: React.FC<GeneralSupervisorViewProps> = ({
 
         {/* Mobile-First Vertical Cards View (Shown on mobile screens < md) */}
         <div className="md:hidden flex flex-col divide-y divide-[#bec8c8]/20">
-          {paginatedStudents.length === 0 ? (
+          {students.length === 0 ? (
+            <div className="p-10 text-center flex flex-col items-center justify-center gap-2">
+              <span className="material-symbols-outlined text-4xl text-[#6f7979]/40">
+                group_off
+              </span>
+              <p className="text-base font-bold text-[#111c2d]">
+                لا يوجد طلاب مضافون بعد
+              </p>
+              <p className="text-xs text-[#6f7979]">
+                يمكنك إضافة طلاب جدد أو مزامنة بيانات الطلاب المسجلين عبر Supabase
+              </p>
+            </div>
+          ) : paginatedStudents.length === 0 ? (
             <div className="p-8 text-center text-[#6f7979] text-sm">
               لا يوجد طلاب يطابقون شروط البحث والتصفية المحددة.
             </div>

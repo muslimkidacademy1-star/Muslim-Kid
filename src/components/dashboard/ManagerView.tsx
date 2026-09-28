@@ -38,9 +38,6 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
     addActivityLog,
     markReportAsSentToParent,
     currentUser,
-    seedSupabaseData,
-    fetchFromSupabase,
-    isSyncing,
   } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,21 +46,11 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
   const [selectedPeriod] = useState('هذا الشهر (شعبان - رمضان 1445)');
   const [activeTab, setActiveTab] = useState<'all' | 'dispatch_center' | 'financials' | 'activity_log'>('all');
   const [sentReportSuccessId, setSentReportSuccessId] = useState<string | null>(null);
-  const [seedSuccessNotice, setSeedSuccessNotice] = useState<string | null>(null);
 
-  const handleSeedData = async () => {
-    setSeedSuccessNotice(null);
-    const res = await seedSupabaseData();
-    if (res.success) {
-      setSeedSuccessNotice(res.message);
-      setTimeout(() => setSeedSuccessNotice(null), 5000);
-    }
-  };
-
-  // 1. Pending Reports for Dispatch: Reports submitted by teachers that haven't been sent to parents yet
+  // 1. Pending Reports for Dispatch: Reports submitted by teachers (status: submitted_to_director / submitted_ready_to_send)
   const pendingDispatchReports = useMemo(() => {
     return reports
-      .filter((r) => r.submissionStatus === 'submitted_ready_to_send')
+      .filter((r) => r.submissionStatus === 'submitted_to_director' || r.submissionStatus === 'submitted_ready_to_send')
       .map((report) => {
         const student = students.find((s) => s.id === report.studentId);
         const teacher = getTeacherById(report.teacherId);
@@ -244,18 +231,6 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
           </button>
 
           <button
-            onClick={fetchFromSupabase}
-            disabled={isSyncing}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-[#a6eff1] border border-white/25 text-xs sm:text-sm font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
-            title="تحديث البيانات فورياً من قاعدة بيانات Supabase"
-          >
-            <span className={`material-symbols-outlined text-lg ${isSyncing ? 'animate-spin' : ''}`}>
-              refresh
-            </span>
-            <span>{isSyncing ? 'جارِ التحديث...' : 'تحديث البيانات من Supabase'}</span>
-          </button>
-
-          <button
             onClick={onAddStudent}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#00e5ff] text-[#003738] text-xs sm:text-sm font-black hover:bg-[#80f0ff] transition-all shadow-xs cursor-pointer"
           >
@@ -264,22 +239,6 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
           </button>
         </div>
       </div>
-
-      {/* Seed notification alert banner */}
-      {seedSuccessNotice && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl flex items-center justify-between gap-3 shadow-xs animate-in fade-in duration-200">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-emerald-600 text-xl">check_circle</span>
-            <span className="text-xs sm:text-sm font-bold">{seedSuccessNotice}</span>
-          </div>
-          <button
-            onClick={() => setSeedSuccessNotice(null)}
-            className="text-emerald-600 hover:text-emerald-800 text-xs font-bold"
-          >
-            إغلاق
-          </button>
-        </div>
-      )}
 
       {/* EXECUTIVE FINANCIAL KPI CARDS GRID */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -419,14 +378,14 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
         {/* Pending Reports Cards Grid */}
         {pendingDispatchReports.length === 0 ? (
           <div className="py-8 bg-white/80 rounded-2xl text-center flex flex-col items-center justify-center border border-[#bec8c8]/20">
-            <span className="material-symbols-outlined text-4xl text-[#15803d] mb-1">
-              verified
+            <span className="material-symbols-outlined text-4xl text-[#005253]/30 mb-1">
+              inbox
             </span>
             <p className="text-sm font-bold text-[#111c2d]">
-              رائع جداً! تم إرسال كافة تقارير المعلمين الواردة إلى أولياء الأمور
+              لا توجد تقارير واردة حالياً
             </p>
             <p className="text-xs text-[#6f7979] mt-0.5">
-              لا توجد تقارير معلقة بانتظار الإرسال في طابور المركز حالياً
+              ستظهر هنا تقارير دورة الـ 8 حصص المعتمدة من قِبل المعلمين (الحالة: submitted_to_director) فور رفعها لمراجعتها وإرسالها لأولياء الأمور
             </p>
           </div>
         ) : (
@@ -870,7 +829,7 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
                   <td colSpan={8} className="py-12 text-center text-[#6f7979]">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <span className="material-symbols-outlined text-4xl text-[#005253]/30">group_off</span>
-                      <p className="text-sm font-bold text-[#111c2d]">لا يوجد طلاب مسجلون في النظام حالياً</p>
+                      <p className="text-sm font-bold text-[#111c2d]">لا يوجد طلاب مضافون بعد</p>
                       <p className="text-xs text-[#6f7979]">ابدأ بإضافة أول طالب عبر زر "+ طالب جديد" أعلاه، وسيتم حفظ بياناته مباشرة في Supabase.</p>
                     </div>
                   </td>
@@ -883,7 +842,7 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
                 const isYellowWarning = reportInfo.isWarning && student.status === 'active';
                 const isVacation = student.status === 'vacation';
                 const latestReport = reports.find((r) => r.studentId === student.id);
-                const isReadyToSend = latestReport?.submissionStatus === 'submitted_ready_to_send';
+                const isReadyToSend = latestReport?.submissionStatus === 'submitted_to_director' || latestReport?.submissionStatus === 'submitted_ready_to_send';
 
                 return (
                   <tr
@@ -1022,8 +981,10 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
         {/* Mobile Vertical Cards View (Shown on screens < md) */}
         <div className="md:hidden flex flex-col gap-3">
           {filteredStudents.length === 0 ? (
-            <div className="p-8 text-center text-[#6f7979] text-xs">
-              لا توجد نتائج مطابقة لخيارات البحث
+            <div className="p-8 text-center text-[#6f7979] text-xs flex flex-col items-center justify-center gap-1.5 bg-white rounded-2xl border border-[#bec8c8]/20">
+              <span className="material-symbols-outlined text-3xl text-[#005253]/30">group_off</span>
+              <p className="text-sm font-bold text-[#111c2d]">لا يوجد طلاب مضافون بعد</p>
+              <p className="text-xs text-[#6f7979]">ابدأ بإضافة أول طالب عبر زر "+ طالب جديد"</p>
             </div>
           ) : (
             filteredStudents.slice(0, 12).map((student) => {
@@ -1033,7 +994,7 @@ export const ManagerView: React.FC<ManagerViewProps> = ({
               const isYellowWarning = reportInfo.isWarning && student.status === 'active';
               const isVacation = student.status === 'vacation';
               const latestReport = reports.find((r) => r.studentId === student.id);
-              const isReadyToSend = latestReport?.submissionStatus === 'submitted_ready_to_send';
+              const isReadyToSend = latestReport?.submissionStatus === 'submitted_to_director' || latestReport?.submissionStatus === 'submitted_ready_to_send';
 
               return (
                 <div

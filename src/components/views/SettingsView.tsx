@@ -82,13 +82,15 @@ export const SettingsView: React.FC = () => {
             </button>
 
             <button
-              onClick={handleSeed}
+              onClick={() => fetchFromSupabase()}
               disabled={isSyncing}
-              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#00e5ff] text-[#003738] text-xs sm:text-sm font-black hover:bg-[#80f0ff] transition-all shadow-md cursor-pointer disabled:opacity-50"
-              title="رفع البيانات التجريبية إلى جداول Supabase بنقرة واحدة"
+              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-bold border border-white/20 transition-all cursor-pointer disabled:opacity-50"
+              title="تحديث ومزامنة البيانات من Supabase حياً"
             >
-              <span className="material-symbols-outlined text-lg">cloud_upload</span>
-              <span>مزامنة البيانات التجريبية إلى Supabase</span>
+              <span className={`material-symbols-outlined text-lg ${isSyncing ? 'animate-spin' : ''}`}>
+                sync
+              </span>
+              <span>{isSyncing ? 'جارِ المزامنة...' : 'تحديث البيانات من Supabase'}</span>
             </button>
           </div>
         </div>
@@ -218,12 +220,12 @@ export const SettingsView: React.FC = () => {
             </button>
 
             <button
-              onClick={handleSeed}
+              onClick={() => fetchFromSupabase()}
               disabled={isSyncing}
               className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#dee8ff] text-[#005253] text-xs font-bold hover:bg-[#c9daff] cursor-pointer disabled:opacity-50"
             >
-              <span className="material-symbols-outlined text-base">cloud_sync</span>
-              <span>مزامنة البيانات التجريبية إلى Supabase</span>
+              <span className={`material-symbols-outlined text-base ${isSyncing ? 'animate-spin' : ''}`}>sync</span>
+              <span>تحديث البيانات من Supabase</span>
             </button>
           </div>
 

@@ -109,7 +109,7 @@ export const AddReportModal: React.FC<AddReportModalProps> = ({
       cycleSessionsCount: 8,
       notes: teacherNotes.trim(),
       recordedBy: currentUser.name,
-      submissionStatus: 'submitted_ready_to_send',
+      submissionStatus: 'submitted_to_director',
       submittedByTeacherName: isTeacher ? currentUser.name : (teacher?.name || currentUser.name),
     };
 

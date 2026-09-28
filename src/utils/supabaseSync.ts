@@ -212,7 +212,7 @@ export function reportToSupabaseRow(
     review: r.revisionDetails || '',
     rating: r.grade || (r.memorizationScore ? `${r.memorizationScore}%` : 'ممتاز'),
     notes: r.teacherNotes || r.notes || '',
-    status: r.submissionStatus || 'submitted_ready_to_send',
+    status: r.submissionStatus || 'submitted_to_director',
   };
 }
 
@@ -233,7 +233,7 @@ export function supabaseRowToReport(row: any): Report {
     teacherNotes: row.notes || '',
     studentEncouragement: 'بارك الله فيك يا بطل القرآن الصغير وحفظك ورعاك!',
     cycleSessionsCount: 8,
-    submissionStatus: row.status || 'submitted_ready_to_send',
+    submissionStatus: (row.status as any) || 'submitted_to_director',
     submittedByTeacherName: 'معلم الحلقة',
   };
 }

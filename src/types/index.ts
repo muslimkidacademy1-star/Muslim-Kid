@@ -87,7 +87,7 @@ export interface Report {
   teacherNotes?: string; // ملاحظات المعلم
   studentEncouragement?: string; // تشجيع وتحفيز الطالب
   cycleSessionsCount?: number; // افتراضياً 8 حصص
-  submissionStatus?: 'submitted_ready_to_send' | 'sent_to_parent' | 'approved'; // حالة تسليم التقرير
+  submissionStatus?: 'submitted_to_director' | 'submitted_ready_to_send' | 'sent_to_parent' | 'approved'; // حالة تسليم التقرير
   submittedByTeacherName?: string; // اسم المعلم الذي قام بالتسليم
 }
 

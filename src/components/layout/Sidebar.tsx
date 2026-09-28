@@ -24,7 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpenMobile,
   onCloseMobile,
 }) => {
-  const { currentUser, logout, switchUserRole } = useApp();
+  const { currentUser, logout } = useApp();
   const currentRole: UserRole = currentUser.role;
 
   const isTeacher = currentRole === 'teacher';
@@ -140,73 +140,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               );
             })}
           </nav>
-
-          {/* Quick Role Fast Switcher in Sidebar - متاح فقط للمدير العام والمشرف العام */}
-          {(currentUser.role === 'manager' || currentUser.role === 'general_supervisor') && (
-            <div className="px-4 py-2 border-t border-[#bec8c8]/20">
-              <span className="text-[11px] text-[#6f7979] font-semibold block mb-1.5 px-1">
-                تجربة مستويات الصلاحيات:
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
-                <button
-                  onClick={() => {
-                    switchUserRole('general_supervisor');
-                    if (onCloseMobile) onCloseMobile();
-                  }}
-                  className={`py-1 px-1.5 rounded-lg text-[10px] font-bold transition-colors text-center ${
-                    currentRole === 'general_supervisor'
-                      ? 'bg-[#005253] text-white shadow-xs'
-                      : 'bg-[#f0f3ff] text-[#3f4949] hover:bg-[#dee8ff]'
-                  }`}
-                  title="مشرف عام"
-                >
-                  مشرف عام
-                </button>
-                <button
-                  onClick={() => {
-                    switchUserRole('sub_supervisor');
-                    if (onCloseMobile) onCloseMobile();
-                  }}
-                  className={`py-1 px-1.5 rounded-lg text-[10px] font-bold transition-colors text-center ${
-                    currentRole === 'sub_supervisor'
-                      ? 'bg-[#005253] text-white shadow-xs'
-                      : 'bg-[#f0f3ff] text-[#3f4949] hover:bg-[#dee8ff]'
-                  }`}
-                  title="مشرف فرعي"
-                >
-                  مشرف فرعي
-                </button>
-                <button
-                  onClick={() => {
-                    switchUserRole('manager');
-                    if (onCloseMobile) onCloseMobile();
-                  }}
-                  className={`py-1 px-1.5 rounded-lg text-[10px] font-bold transition-colors text-center ${
-                    currentRole === 'manager'
-                      ? 'bg-[#005253] text-white shadow-xs'
-                      : 'bg-[#f0f3ff] text-[#3f4949] hover:bg-[#dee8ff]'
-                  }`}
-                  title="المدير العام"
-                >
-                  المدير
-                </button>
-                <button
-                  onClick={() => {
-                    switchUserRole('teacher');
-                    if (onCloseMobile) onCloseMobile();
-                  }}
-                  className={`py-1 px-1.5 rounded-lg text-[10px] font-bold transition-colors text-center ${
-                    currentRole === 'teacher'
-                      ? 'bg-[#005253] text-white shadow-xs'
-                      : 'bg-[#f0f3ff] text-[#3f4949] hover:bg-[#dee8ff]'
-                  }`}
-                  title="معلم حلقة"
-                >
-                  معلم
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* PWA Install in Sidebar */}
