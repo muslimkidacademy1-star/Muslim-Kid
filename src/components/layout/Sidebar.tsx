@@ -23,7 +23,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpenMobile,
   onCloseMobile,
 }) => {
-  const { currentUser, logout } = useApp();
+  const { currentUser, logout, isSuperAdmin, previewRole } = useApp();
   const currentRole: UserRole = currentUser.role;
 
   const isTeacher = currentRole === 'teacher';
@@ -61,7 +61,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       <aside
-        className={`fixed right-0 top-0 h-full w-72 bg-white shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-l border-[#bec8c8]/20 z-50 flex flex-col justify-between py-5 transition-transform duration-300 ease-in-out ${
+        className={`fixed right-0 ${
+          isSuperAdmin ? 'top-11 h-[calc(100vh-2.75rem)]' : 'top-0 h-full'
+        } w-72 bg-white shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-l border-[#bec8c8]/20 z-50 flex flex-col justify-between py-5 transition-transform duration-300 ease-in-out ${
           isOpenMobile ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
         }`}
       >

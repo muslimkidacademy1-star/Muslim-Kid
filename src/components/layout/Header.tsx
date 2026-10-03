@@ -30,6 +30,8 @@ export const Header: React.FC<HeaderProps> = ({
     markNotificationAsRead,
     markAllNotificationsAsRead,
     logout,
+    isSuperAdmin,
+    previewRole,
   } = useApp();
 
   const currentRole: UserRole = currentUser.role;
@@ -63,7 +65,11 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="fixed top-0 right-0 lg:right-72 left-0 h-16 bg-[#f9f9ff]/90 backdrop-blur-xl border-b border-[#bec8c8]/20 z-40 flex items-center justify-between px-4 sm:px-6">
+    <header
+      className={`fixed ${
+        isSuperAdmin ? 'top-11' : 'top-0'
+      } right-0 lg:right-72 left-0 h-16 bg-[#f9f9ff]/90 backdrop-blur-xl border-b border-[#bec8c8]/20 z-40 flex items-center justify-between px-4 sm:px-6 transition-all duration-200`}
+    >
       {/* Right Side in RTL: Breadcrumb & Mobile Menu */}
       <div className="flex items-center gap-3">
         {/* Mobile menu toggle */}

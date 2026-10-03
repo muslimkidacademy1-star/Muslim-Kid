@@ -31,7 +31,10 @@ export const TeacherView: React.FC = () => {
   const teacherObj =
     getTeacherById(teacherId) ||
     getTeacherById(currentUser.id) ||
-    (teachers && teachers.find((t) => t.id === teacherId || t.name === currentUser.name));
+    (teachers && teachers.find((t) => t.id === teacherId || t.name === currentUser.name)) ||
+    (teachers && teachers.length > 0 ? teachers[0] : undefined);
+
+  const effectiveTeacherId = teacherObj?.id || teacherId;
 
   const teacherCircleName =
     teacherObj?.circleName ||
@@ -736,8 +739,8 @@ export const TeacherView: React.FC = () => {
       <QuickAddStudentModal
         isOpen={isAddStudentModalOpen}
         onClose={() => setIsAddStudentModalOpen(false)}
-        teacherId={teacherId}
-        circleName={teacherObj?.circleName}
+        teacherId={effectiveTeacherId}
+        circleName={teacherCircleName}
       />
     </div>
   );

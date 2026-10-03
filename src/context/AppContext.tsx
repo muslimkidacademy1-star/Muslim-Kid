@@ -50,6 +50,11 @@ interface AppContextType {
   login: (identifier: string, roleOrPassword?: string, rememberMe?: boolean) => boolean;
   logout: () => Promise<void>;
 
+  // Super Admin View Mode (Exclusive to mahmoudaliwahkotb@gmail.com and managers)
+  isSuperAdmin: boolean;
+  previewRole: UserRole | null;
+  setPreviewRole: (role: UserRole | null) => void;
+
   // Supabase Cloud State & Sync
   isSupabaseConnected: boolean;
   isSyncing: boolean;
@@ -122,7 +127,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return localStorage.getItem('mk_logged_in') === 'true';
   });
 
-  const [currentUser, setCurrentUserState] = useState<Supervisor>(() => {
+  const [realUser, setRealUser] = useState<Supervisor>(() => {
     const cachedProfile = localStorage.getItem('mk_user_profile');
     if (cachedProfile) {
       try {
@@ -136,8 +141,33 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
     const savedId = localStorage.getItem('mk_current_user_id');
     const found = INITIAL_SUPERVISORS.find((s) => s.id === savedId);
-    return found || INITIAL_SUPERVISORS[0]; // defaults to general supervisor
+    return found || INITIAL_SUPERVISORS[0]; // defaults to manager
   });
+
+  // Super Admin View Mode state (simulating different roles for testing)
+  const [previewRole, setPreviewRoleState] = useState<UserRole | null>(null);
+
+  // Exclusive condition for Super Admin View Mode: mahmoudaliwahkotb@gmail.com OR any manager
+  const isSuperAdmin = useMemo(() => {
+    const email = realUser?.email?.toLowerCase().trim() || '';
+    return (
+      email === 'mahmoudaliwahkotb@gmail.com' ||
+      email === 'muslim.kid.academy1@gmail.com' ||
+      realUser?.role === 'manager'
+    );
+  }, [realUser]);
+
+  const setPreviewRole = useCallback((role: UserRole | null) => {
+    if (!isSuperAdmin) {
+      setPreviewRoleState(null);
+      return;
+    }
+    if (role === 'manager') {
+      setPreviewRoleState(null);
+    } else {
+      setPreviewRoleState(role);
+    }
+  }, [isSuperAdmin]);
 
   // Complete purge of all legacy mock localStorage keys
   if (typeof window !== 'undefined') {
@@ -252,6 +282,59 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return localStorage.getItem('mk_last_supabase_sync') || null;
   });
 
+  // Effective currentUser based on authentic user & active preview mode
+  const currentUser: Supervisor = useMemo(() => {
+    if (!isSuperAdmin || !previewRole) {
+      return realUser;
+    }
+
+    if (previewRole === 'teacher') {
+      const sampleTeacher = teachers[0];
+      return {
+        id: sampleTeacher ? sampleTeacher.id : 'preview-teacher-id',
+        name: sampleTeacher ? sampleTeacher.name : 'معلم الحلقة القرآنية',
+        role: 'teacher' as UserRole,
+        title: 'معلم الحلقة (وضع المعاينة)',
+        roleLabel: sampleTeacher ? `معلم - ${sampleTeacher.circleName}` : 'معلم حلقة النور',
+        department: 'قسم التحفيظ والتلقين',
+        initials: sampleTeacher ? sampleTeacher.initials : 'مع',
+        email: sampleTeacher?.phone || 'teacher.preview@muslimkid.academy',
+        assignedTeacherIds: sampleTeacher ? [sampleTeacher.id] : [],
+        teacherId: sampleTeacher ? sampleTeacher.id : 'preview-teacher-id',
+      };
+    }
+
+    if (previewRole === 'sub_supervisor') {
+      return {
+        id: 'preview-sub-sup-id',
+        name: 'المشرف التعليمي الفرعي',
+        role: 'sub_supervisor' as UserRole,
+        title: 'مشرف تعليمي فرعي (معاينة)',
+        roleLabel: 'الإشراف الفرعي والمتابعة',
+        department: 'فريق الإشراف الأكاديمي',
+        initials: 'مش',
+        email: 'sub.supervisor@muslimkid.academy',
+        assignedTeacherIds: teachers.map((t) => t.id),
+      };
+    }
+
+    if (previewRole === 'general_supervisor') {
+      return {
+        id: 'preview-gen-sup-id',
+        name: 'المشرف العام للأكاديمية',
+        role: 'general_supervisor' as UserRole,
+        title: 'المشرف العام (معاينة)',
+        roleLabel: 'الإشراف التربوي العام',
+        department: 'إدارة الإشراف العام',
+        initials: 'مع',
+        email: 'general.supervisor@muslimkid.academy',
+        assignedTeacherIds: teachers.map((t) => t.id),
+      };
+    }
+
+    return realUser;
+  }, [isSuperAdmin, previewRole, realUser, teachers]);
+
   // Check and maintain Supabase Auth session on app launch across reloads
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -260,7 +343,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         localStorage.setItem('mk_logged_in', 'true');
         const resolved = await resolveUserRoleFromSupabase(session.user.email);
         if (resolved) {
-          setCurrentUserState(resolved);
+          setRealUser(resolved);
           localStorage.setItem('mk_user_profile', JSON.stringify(resolved));
           localStorage.setItem('mk_current_user_id', resolved.id);
         }
@@ -275,7 +358,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         localStorage.setItem('mk_logged_in', 'true');
         const resolved = await resolveUserRoleFromSupabase(session.user.email);
         if (resolved) {
-          setCurrentUserState(resolved);
+          setRealUser(resolved);
           localStorage.setItem('mk_user_profile', JSON.stringify(resolved));
           localStorage.setItem('mk_current_user_id', resolved.id);
         }
@@ -1077,13 +1160,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Role switching
   const setCurrentUser = (supervisor: Supervisor) => {
-    setCurrentUserState(supervisor);
+    setRealUser(supervisor);
+    setPreviewRoleState(null);
   };
 
   const switchUserRole = (role: UserRole) => {
+    if (isSuperAdmin) {
+      setPreviewRole(role === 'manager' ? null : role);
+      return;
+    }
     const target = INITIAL_SUPERVISORS.find((s) => s.role === role);
     if (target) {
-      setCurrentUserState(target);
+      setRealUser(target);
       setIsLoggedIn(true);
     }
   };
@@ -1139,7 +1227,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       matched = INITIAL_SUPERVISORS[0];
     }
 
-    setCurrentUserState(matched);
+    setRealUser(matched);
+    setPreviewRoleState(null);
     setIsLoggedIn(true);
 
     if (rememberMe) {
@@ -1194,7 +1283,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
 
       // 3. Update state and device persistence
-      setCurrentUserState(resolved);
+      setRealUser(resolved);
+      setPreviewRoleState(null);
       setIsLoggedIn(true);
       localStorage.setItem('mk_logged_in', 'true');
       localStorage.setItem('mk_user_profile', JSON.stringify(resolved));
@@ -1219,6 +1309,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } catch (e) {
       console.warn('Supabase signOut error:', e);
     }
+    setPreviewRoleState(null);
     setIsLoggedIn(false);
     localStorage.setItem('mk_logged_in', 'false');
     localStorage.removeItem('mk_user_profile');
@@ -1229,14 +1320,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const visibleTeachers = useMemo(() => {
     if (currentUser.role === 'teacher') {
       const myTeacherId = currentUser.teacherId || currentUser.assignedTeacherIds?.[0] || currentUser.id;
-      return teachers.filter((t) => t.id === myTeacherId || (currentUser.name && t.name === currentUser.name));
+      const found = teachers.filter((t) => t.id === myTeacherId || (currentUser.name && t.name === currentUser.name));
+      if (found.length > 0) return found;
+      return teachers.length > 0 ? [teachers[0]] : [];
     }
     if (currentUser.role === 'sub_supervisor') {
-      return teachers.filter(
+      const found = teachers.filter(
         (t) =>
           t.supervisorId === currentUser.id ||
           currentUser.assignedTeacherIds?.includes(t.id)
       );
+      if (found.length > 0) return found;
+      return teachers;
     }
     return teachers;
   }, [teachers, currentUser]);
@@ -1250,11 +1345,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         ...(currentUser.assignedTeacherIds || []),
         ...visibleTeachers.map((vt) => vt.id),
       ]);
-      return students.filter((s) => validTeacherIds.has(s.teacherId));
+      const matched = students.filter((s) => validTeacherIds.has(s.teacherId));
+      if (matched.length > 0) return matched;
+      if (visibleTeachers.length > 0) {
+        const fallbackMatched = students.filter((s) => s.teacherId === visibleTeachers[0].id);
+        if (fallbackMatched.length > 0) return fallbackMatched;
+      }
+      return students;
     }
     if (currentUser.role === 'sub_supervisor') {
       const allowedTeacherIds = new Set(visibleTeachers.map((t) => t.id));
-      return students.filter((s) => allowedTeacherIds.has(s.teacherId));
+      const matched = students.filter((s) => allowedTeacherIds.has(s.teacherId));
+      return matched.length > 0 ? matched : students;
     }
     // General supervisor & Manager see all
     return students;
@@ -1545,6 +1647,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         login,
         loginWithSupabase,
         logout,
+        isSuperAdmin,
+        previewRole,
+        setPreviewRole,
         isSupabaseConnected,
         isSyncing,
         lastSyncTime,

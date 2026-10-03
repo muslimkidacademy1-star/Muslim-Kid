@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/layout/Header';
 import { Sidebar, NavigationTab } from './components/layout/Sidebar';
+import { SuperAdminViewBar } from './components/common/SuperAdminViewBar';
 import { GeneralSupervisorView } from './components/dashboard/GeneralSupervisorView';
 import { EducationalSupervisorView } from './components/dashboard/EducationalSupervisorView';
 import { ManagerView } from './components/dashboard/ManagerView';
@@ -15,10 +16,10 @@ import { AddReportModal } from './components/modals/AddReportModal';
 import { VacationModal } from './components/modals/VacationModal';
 import { ActivityLogModal } from './components/modals/ActivityLogModal';
 import { LoginView } from './components/auth/LoginView';
-import { Student } from './types';
+import { Student, UserRole } from './types';
 
 function AuthenticatedApp() {
-  const { currentUser } = useApp();
+  const { currentUser, isSuperAdmin, setPreviewRole } = useApp();
 
   const [activeTab, setActiveTab] = useState<NavigationTab>('dashboard');
   const [isSidebarMobileOpen, setIsSidebarMobileOpen] = useState(false);
@@ -29,6 +30,12 @@ function AuthenticatedApp() {
   const [selectedStudentForReport, setSelectedStudentForReport] = useState<Student | null>(null);
   const [selectedStudentForVacation, setSelectedStudentForVacation] = useState<Student | null>(null);
   const [isActivityLogOpen, setIsActivityLogOpen] = useState(false);
+
+  // Switch role preview handler for Super Admin
+  const handleSwitchPreviewRole = (role: UserRole | null) => {
+    setPreviewRole(role);
+    setActiveTab('dashboard');
+  };
 
   // Reset tab to dashboard if teacher has no access to specific tabs
   React.useEffect(() => {
@@ -126,6 +133,9 @@ function AuthenticatedApp() {
 
   return (
     <div className="min-h-screen bg-[#f9f9ff] text-[#111c2d] flex flex-col font-sans" dir="rtl">
+      {/* Super Admin Preview Bar - Rendered exclusively for mahmoudaliwahkotb@gmail.com and managers */}
+      <SuperAdminViewBar onSelectRole={handleSwitchPreviewRole} />
+
       {/* Unified Top Header */}
       <Header
         activeTab={activeTab}
@@ -150,7 +160,11 @@ function AuthenticatedApp() {
       />
 
       {/* Main Page Content Body */}
-      <main className="flex-1 pt-20 pb-12 px-4 sm:px-6 lg:px-8 lg:mr-72 transition-all duration-300">
+      <main
+        className={`flex-1 ${
+          isSuperAdmin ? 'pt-28 sm:pt-32' : 'pt-20'
+        } pb-12 px-4 sm:px-6 lg:px-8 lg:mr-72 transition-all duration-300`}
+      >
         <div className="max-w-7xl mx-auto">{renderMainContent()}</div>
       </main>
 
