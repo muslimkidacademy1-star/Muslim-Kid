@@ -378,18 +378,67 @@ export const LogSessionModal: React.FC<LogSessionModalProps> = ({
                   />
                 </div>
 
-                {/* Additional Teacher Note */}
+                {/* Additional Teacher Note & Quick Praise Chips */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-900 mb-1.5">
-                    ملاحظة تشجيعية أو تقييم أداء الطالب
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-gray-900">
+                      ملاحظة تشجيعية أو تقييم أداء الطالب
+                    </label>
+                    <span className="text-[11px] text-gray-500 font-medium">
+                      انقر على عبارة تشجيعية لكتابتها تلقائياً ⚡
+                    </span>
+                  </div>
                   <input
                     type="text"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="مثال: انتباه ممتاز وتلاوة مرتلة خاشعة، استحق نجمة التميز ⭐"
+                    placeholder="اكتب ملاحظة أو اختر من بنك العبارات أدناه..."
                     className="w-full h-10 px-3.5 rounded-xl bg-[#F4F9FA] text-gray-900 text-xs border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/30 placeholder:text-gray-400"
                   />
+
+                  {/* Quick Praise Chips Bank */}
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {[
+                      {
+                        icon: '🌟',
+                        title: 'بطل اليوم',
+                        text: 'بطل اليوم: إتقان رائع لأحكام التجويد وتلاوة خاشعة',
+                      },
+                      {
+                        icon: '👏',
+                        title: 'أحسنت يا بطل',
+                        text: 'أحسنت يا بطل: حفظ متقن وانتباه مميز طوال الحلقة',
+                      },
+                      {
+                        icon: '🌸',
+                        title: 'وردة الحلقة',
+                        text: 'وردة الحلقة: تلاوة مباركة ونرجو الاستمرار بنفس الهمة',
+                      },
+                      {
+                        icon: '💡',
+                        title: 'جهد طيب',
+                        text: 'جهد طيب: نرجو تكرار مقطع اليوم مع ولي الأمر لضبط الغنن',
+                      },
+                    ].map((chip) => {
+                      const isSelected = notes.includes(chip.text);
+                      return (
+                        <button
+                          key={chip.title}
+                          type="button"
+                          onClick={() => setNotes(chip.text)}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer text-right border ${
+                            isSelected
+                              ? 'bg-[#1A7B88] text-white border-[#1A7B88] shadow-xs'
+                              : 'bg-white hover:bg-[#EAF5F7] text-gray-700 hover:text-[#125862] border-gray-200/80 hover:border-[#1A7B88]/30 shadow-2xs'
+                          }`}
+                          title={`كتابة: ${chip.text}`}
+                        >
+                          <span className="text-xs">{chip.icon}</span>
+                          <span className="font-semibold">{chip.title}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </>
             )}

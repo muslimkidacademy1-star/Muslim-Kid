@@ -98,31 +98,28 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Left Side: Teacher Name Badge & Light Logout Button */}
-        <div className="flex items-center gap-3 sm:gap-4">
+        {/* Left Side: Teacher Name & Circle next to Avatar (الشيخ محمد أبو شتا • حلقة النور) */}
+        <div className="flex items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-[#EAF5F7] text-[#125862] font-bold flex items-center justify-center text-xs border border-[#1A7B88]/20">
+            <div className="w-8 h-8 rounded-full bg-[#EAF5F7] text-[#125862] font-bold flex items-center justify-center text-xs border border-[#1A7B88]/25 shadow-2xs shrink-0">
               {currentUser.initials}
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs sm:text-sm font-bold text-gray-800">
-                {currentUser.name}
-              </span>
-              <span className="hidden sm:inline-block text-[11px] text-[#125862] bg-[#EAF5F7] px-2 py-0.5 rounded-full font-medium border border-[#1A7B88]/20">
-                {circleName}
-              </span>
+            <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-gray-900">
+              <span>{currentUser.name}</span>
+              <span className="text-gray-300 font-normal">•</span>
+              <span className="text-[#1A7B88] font-semibold">{circleName || 'حلقة النور'}</span>
             </div>
           </div>
 
-          <div className="h-4 w-px bg-gray-200 hidden sm:block" />
+          <div className="h-4 w-px bg-gray-200" />
 
           <button
             onClick={logout}
-            className="px-2.5 py-1.5 rounded-lg text-gray-500 hover:text-rose-600 hover:bg-rose-50 transition-colors flex items-center gap-1 cursor-pointer text-xs font-medium"
+            className="px-2 sm:px-2.5 py-1.5 rounded-lg text-gray-500 hover:text-rose-600 hover:bg-rose-50 transition-colors flex items-center gap-1 cursor-pointer text-xs font-medium"
             title="تسجيل الخروج"
           >
             <span className="material-symbols-outlined text-base">logout</span>
-            <span className="hidden sm:inline">تسجيل خروج</span>
+            <span className="hidden sm:inline">خروج</span>
           </button>
         </div>
       </header>

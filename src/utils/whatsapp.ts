@@ -65,6 +65,63 @@ export function getDirectWhatsAppChatUrl(phone: string): string {
 }
 
 /**
+ * Format phone numbers into standard international representation
+ * e.g. +966 58 319 4463 or +20 10 1234 5678
+ */
+export function formatInternationalPhone(phone?: string): string {
+  if (!phone) return '';
+  let digits = phone.replace(/\D/g, '');
+  if (!digits) return phone;
+
+  if (digits.startsWith('00')) {
+    digits = digits.substring(2);
+  }
+
+  // Saudi 05XXXXXXXX -> 9665XXXXXXXX
+  if (digits.startsWith('05') && digits.length === 10) {
+    digits = `966${digits.substring(1)}`;
+  } else if (digits.startsWith('5') && digits.length === 9) {
+    digits = `966${digits}`;
+  } else if (digits.startsWith('01') && digits.length === 11) {
+    // Egyptian 01XXXXXXXXX -> 201XXXXXXXXX
+    digits = `20${digits.substring(1)}`;
+  }
+
+  // Saudi format: +966 58 319 4463
+  if (digits.startsWith('966') && digits.length === 12) {
+    return `+966 ${digits.substring(3, 5)} ${digits.substring(5, 8)} ${digits.substring(8)}`;
+  }
+
+  // Egyptian format: +20 10 1234 5678
+  if (digits.startsWith('20') && digits.length === 12) {
+    return `+20 ${digits.substring(2, 4)} ${digits.substring(4, 8)} ${digits.substring(8)}`;
+  }
+
+  // General format: +XXX XX XXX XXXX
+  if (digits.length >= 10) {
+    return `+${digits.slice(0, 3)} ${digits.slice(3, 5)} ${digits.slice(5, 8)} ${digits.slice(8)}`;
+  }
+
+  return phone.startsWith('+') ? phone : `+${digits}`;
+}
+
+/**
+ * Ensure session time is always exclusively formatted with (بتوقيت القاهرة)
+ */
+export function formatCairoTime(time?: string): string {
+  if (!time || !time.trim()) {
+    return '04:00 م (بتوقيت القاهرة)';
+  }
+  // Strip any old timezone text like بتوقيت مكة or بتوقيت السعودية or بتوقيت القاهرة
+  const cleaned = time
+    .replace(/\(?\s*بتوقيت\s+[^)]+\)?/gi, '')
+    .replace(/بتوقيت\s+[\u0621-\u064A]+/gi, '')
+    .trim();
+  return `${cleaned || '04:00 م'} (بتوقيت القاهرة)`;
+}
+
+
+/**
  * Specialized WhatsApp message URL for after 8-session report generation:
  * "مرحباً بكم، تم بحمد الله إتمام 8 حصص للطالب [اسم الطالب] في أكاديمية المسلم الصغير وصدور تقريره الشهري، تجدون التقرير مرفقاً."
  */

@@ -5,8 +5,10 @@ import { AddReportModal } from '../modals/AddReportModal';
 import { QuickAddStudentModal } from '../modals/QuickAddStudentModal';
 import { LogSessionModal } from '../modals/LogSessionModal';
 import { generateStudentReportPdf } from '../../utils/pdfGenerator';
-import { getParentWhatsAppUrl } from '../../utils/whatsapp';
-import { ARABIC_WEEKDAYS, getTodayArabicWeekday } from '../../mock/initialData';
+import { getParentWhatsAppUrl, formatInternationalPhone, formatCairoTime } from '../../utils/whatsapp';
+import { getTodayArabicWeekday } from '../../mock/initialData';
+import { HorizontalWeeklyScheduleStrip } from './HorizontalWeeklyScheduleStrip';
+import { TeacherBottomNav, TeacherTab } from './TeacherBottomNav';
 
 interface StudentCardProps {
   student: Student;
@@ -14,7 +16,7 @@ interface StudentCardProps {
   onSubmitReport: (student: Student) => void;
   onDownloadPdf?: (student: Student, report: Report) => void;
   latestReport?: Report;
-  todayWeekday: string;
+  displayDay?: string;
 }
 
 const StudentCard: React.FC<StudentCardProps> = ({
@@ -23,16 +25,16 @@ const StudentCard: React.FC<StudentCardProps> = ({
   onSubmitReport,
   onDownloadPdf,
   latestReport,
-  todayWeekday,
+  displayDay,
 }) => {
   const maxPkg = student.packageSessionsCount || 8;
   const cycleCount = student.currentCycleSessionsCount || 0;
   const isCompleted = cycleCount >= maxPkg;
 
-  // Session time (prioritizing today's specific day time)
-  const sessionTimeString = student.daySchedule?.[todayWeekday]
-    ? `${student.daySchedule[todayWeekday]} (بتوقيت القاهرة)`
-    : student.sessionTime || '04:00 م (بتوقيت القاهرة)';
+  // Session time strictly in Cairo Time
+  const dayKey = displayDay || getTodayArabicWeekday();
+  const rawTime = student.daySchedule?.[dayKey] || student.sessionTime;
+  const sessionTimeString = formatCairoTime(rawTime);
 
   const scheduleDaysString =
     student.scheduleDays && student.scheduleDays.length > 0
@@ -40,7 +42,7 @@ const StudentCard: React.FC<StudentCardProps> = ({
       : 'السبت والإثنين';
 
   return (
-    <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-xs hover:shadow-sm transition-all flex flex-col justify-between gap-3.5">
+    <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-xs hover:shadow-sm transition-all flex flex-col justify-between gap-3.5 w-full">
       {/* Header: Student Name & Cycle Badge */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -72,7 +74,7 @@ const StudentCard: React.FC<StudentCardProps> = ({
 
       {/* Two Tidy Lines with Calm Gray Icons */}
       <div className="flex flex-col gap-2 text-xs text-gray-600">
-        {/* Line 1: Time & Schedule Days */}
+        {/* Line 1: Time (بتوقيت القاهرة) & Schedule Days */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className="inline-flex items-center gap-1.5 text-gray-700">
             <span className="material-symbols-outlined text-sm text-gray-400">schedule</span>
@@ -85,26 +87,30 @@ const StudentCard: React.FC<StudentCardProps> = ({
           </span>
         </div>
 
-        {/* Line 2: WhatsApp Link as an elegant pill with green icon */}
+        {/* Line 2: WhatsApp Link with international phone order and green active icon */}
         {student.parentPhone ? (
           <div className="flex items-center">
             <a
               href={getParentWhatsAppUrl(student.parentPhone, student.name)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 hover:bg-[#EAF5F7] border border-gray-200/70 hover:border-[#1A7B88]/40 text-gray-700 hover:text-[#125862] transition-colors text-xs font-mono group"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50/70 hover:bg-emerald-100 border border-emerald-200/80 text-emerald-950 transition-colors text-xs group"
               title="محادثة واتساب مباشرة مع ولي الأمر"
             >
-              <span className="w-4 h-4 rounded-full bg-[#25D366] text-white flex items-center justify-center text-[10px] group-hover:scale-110 transition-transform">
-                <span className="material-symbols-outlined text-[10px]">chat</span>
+              <span className="w-4.5 h-4.5 rounded-full bg-[#25D366] text-white flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+                  <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86.173.086.275.073.376-.044.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.203c.043.072.043.419-.101.824z" />
+                </svg>
               </span>
-              <span className="dir-ltr text-[11px] font-semibold">{student.parentPhone}</span>
+              <span dir="ltr" className="font-mono text-[11px] font-bold tracking-normal inline-block text-left text-emerald-950">
+                {formatInternationalPhone(student.parentPhone)}
+              </span>
             </a>
           </div>
         ) : null}
       </div>
 
-      {/* Slim, elegant progress line in Teal #1A7B88 */}
+      {/* Slim progress line in Teal #1A7B88 */}
       <div className="flex flex-col gap-1 pt-1">
         <div className="flex items-center justify-between text-[11px] text-gray-500 font-medium">
           <span>إنجاز الدورة ({cycleCount} من {maxPkg})</span>
@@ -167,7 +173,8 @@ export const TeacherView: React.FC = () => {
     reports,
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'today' | 'students' | 'schedule'>('today');
+  const [activeTab, setActiveTab] = useState<TeacherTab>('today');
+  const [selectedDayFilter, setSelectedDayFilter] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudentForReport, setSelectedStudentForReport] = useState<Student | null>(null);
   const [selectedStudentForLog, setSelectedStudentForLog] = useState<Student | null>(null);
@@ -188,9 +195,9 @@ export const TeacherView: React.FC = () => {
   const teacherCircleName =
     teacherObj?.circleName ||
     (currentUser.roleLabel ? currentUser.roleLabel.replace(/^معلم\s*-\s*/, '') : '') ||
-    'حلقة القرآن';
+    'حلقة النور';
 
-  // Filter students belonging to this teacher
+  // Filter students belonging to this teacher by search term
   const teacherStudents = visibleStudents.filter((s) => {
     const q = searchTerm.toLowerCase().trim();
     if (!q) return true;
@@ -212,9 +219,20 @@ export const TeacherView: React.FC = () => {
     return true;
   });
 
-  const completedCyclesCount = teacherStudents.filter(
-    (s) => (s.currentCycleSessionsCount || 0) >= (s.packageSessionsCount || 8)
-  ).length;
+  // Students for currently selected day from the horizontal strip
+  const dayFilteredStudents = selectedDayFilter
+    ? teacherStudents.filter(
+        (s) => s.status !== 'vacation' && s.scheduleDays?.includes(selectedDayFilter)
+      )
+    : [];
+
+  const handleSelectDay = (day: string) => {
+    if (selectedDayFilter === day) {
+      setSelectedDayFilter(null);
+    } else {
+      setSelectedDayFilter(day);
+    }
+  };
 
   const handleOpenSubmitReport = (student: Student) => {
     setSelectedStudentForReport(student);
@@ -240,131 +258,126 @@ export const TeacherView: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-5" dir="rtl">
-      {/* 1. Compact Quick Stats Bar (موجز علوي مدمج وأنيق) */}
-      <div className="bg-white rounded-2xl px-4 py-3 sm:px-5 sm:py-3.5 border border-gray-100 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          <span className="text-sm sm:text-base font-bold text-gray-900">
-            أهلاً {currentUser.name} 👋 • {teacherCircleName}
-          </span>
-
-          <span className="text-gray-300 hidden md:inline">•</span>
-
-          {/* Quick stats in a single inline row */}
-          <div className="flex items-center gap-2 text-xs text-gray-600 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#EAF5F7] text-[#125862] font-bold border border-[#1A7B88]/25">
-              <span>📅</span>
-              <span>{todayStudents.length} حصص اليوم</span>
-            </span>
-
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#EAF5F7] text-[#125862] font-medium border border-[#1A7B88]/25">
-              <span>👥</span>
-              <span>{teacherStudents.length} طلاب</span>
-            </span>
-
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 font-medium border border-amber-200/70">
-              <span>🏆</span>
-              <span>{completedCyclesCount} دورات مكتملة</span>
-            </span>
-          </div>
-        </div>
-
-        {/* Compact Add Student Button */}
+    <div className="w-full max-w-5xl mx-auto flex flex-col gap-3.5 sm:gap-4 pb-24 sm:pb-8" dir="rtl">
+      {/* 1. Balanced Wide 2-Tab Navigation Bar (50% / 50% split) */}
+      <div
+        className="w-full grid grid-cols-2 p-1.5 bg-[#EAF5F7] rounded-2xl gap-1.5 border border-[#1A7B88]/20 shadow-xs text-xs sm:text-sm font-bold items-center"
+        style={{ height: '59px' }}
+      >
+        {/* Tab 1: حصص اليوم (50% width) */}
         <button
-          onClick={() => setIsAddStudentModalOpen(true)}
-          className="px-4 py-2 rounded-xl bg-[#1A7B88] hover:bg-[#125862] text-white font-bold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer shrink-0 active:scale-98"
+          onClick={() => {
+            setActiveTab('today');
+            setSelectedDayFilter(null);
+          }}
+          className={`w-full h-full py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            activeTab === 'today' && !selectedDayFilter
+              ? 'bg-white text-[#125862] shadow-xs'
+              : 'text-gray-600 hover:text-[#125862]'
+          }`}
         >
-          <span className="material-symbols-outlined text-base">person_add</span>
-          <span>+ إضافة طالب جديد</span>
+          <span className="text-sm">📌</span>
+          <span className="font-bold truncate">حصص اليوم</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold shrink-0 ${
+              activeTab === 'today' && !selectedDayFilter
+                ? 'bg-[#1A7B88] text-white'
+                : 'bg-white/80 text-gray-700'
+            }`}
+          >
+            {todayStudents.length}
+          </span>
+        </button>
+
+        {/* Tab 2: قائمة الطلاب (50% width) */}
+        <button
+          onClick={() => {
+            setActiveTab('students');
+            setSelectedDayFilter(null);
+          }}
+          className={`w-full h-full py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            activeTab === 'students' && !selectedDayFilter
+              ? 'bg-white text-[#125862] shadow-xs'
+              : 'text-gray-600 hover:text-[#125862]'
+          }`}
+        >
+          <span className="text-sm">👥</span>
+          <span className="font-bold truncate">قائمة الطلاب</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold shrink-0 ${
+              activeTab === 'students' && !selectedDayFilter
+                ? 'bg-[#1A7B88] text-white'
+                : 'bg-white/80 text-gray-700'
+            }`}
+          >
+            {teacherStudents.length}
+          </span>
         </button>
       </div>
 
-      {/* 2. Segmented Control Tabs (تبويبات التصفح العصرية تشبه تطبيقات الموبايل) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="inline-flex p-1 bg-[#EAF5F7] rounded-2xl gap-1 border border-[#1A7B88]/20 shadow-inner text-xs sm:text-sm font-bold w-full sm:w-auto">
-          <button
-            onClick={() => setActiveTab('today')}
-            className={`flex-1 sm:flex-initial px-3.5 sm:px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
-              activeTab === 'today'
-                ? 'bg-white text-[#125862] shadow-xs'
-                : 'text-gray-600 hover:text-[#125862]'
-            }`}
-          >
-            <span>📌</span>
-            <span>حصص اليوم</span>
-            <span
-              className={`px-2 py-0.5 rounded-full text-[11px] font-mono ${
-                activeTab === 'today'
-                  ? 'bg-[#1A7B88] text-white'
-                  : 'bg-white/80 text-gray-700'
-              }`}
-            >
-              {todayStudents.length}
+      {/* 2. Horizontal Scrollable Weekly Schedule Strip (أسفل تبويبات حصص اليوم وقائمة الطلاب) */}
+      <HorizontalWeeklyScheduleStrip
+        students={teacherStudents}
+        selectedDay={selectedDayFilter}
+        onSelectDay={handleSelectDay}
+      />
+
+      {/* Active Day Filter Notification Banner */}
+      {selectedDayFilter && (
+        <div className="flex items-center justify-between p-3 rounded-2xl bg-[#EAF5F7] border border-[#1A7B88]/30 animate-in fade-in duration-150">
+          <div className="flex items-center gap-2 text-xs text-[#125862] font-bold">
+            <span className="material-symbols-outlined text-base text-[#1A7B88]">filter_alt</span>
+            <span>
+              عرض الحصص المجدولة ليوم <strong>({selectedDayFilter})</strong> • {dayFilteredStudents.length} طلاب
             </span>
-          </button>
+          </div>
 
           <button
-            onClick={() => setActiveTab('students')}
-            className={`flex-1 sm:flex-initial px-3.5 sm:px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
-              activeTab === 'students'
-                ? 'bg-white text-[#125862] shadow-xs'
-                : 'text-gray-600 hover:text-[#125862]'
-            }`}
+            onClick={() => setSelectedDayFilter(null)}
+            className="text-xs text-[#125862] hover:text-[#1A7B88] font-bold px-2.5 py-1 rounded-xl bg-white border border-[#1A7B88]/20 transition-colors cursor-pointer"
           >
-            <span>👥</span>
-            <span>قائمة الطلاب</span>
-            <span
-              className={`px-2 py-0.5 rounded-full text-[11px] font-mono ${
-                activeTab === 'students'
-                  ? 'bg-[#1A7B88] text-white'
-                  : 'bg-white/80 text-gray-700'
-              }`}
-            >
-              {teacherStudents.length}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('schedule')}
-            className={`flex-1 sm:flex-initial px-3.5 sm:px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
-              activeTab === 'schedule'
-                ? 'bg-white text-[#125862] shadow-xs'
-                : 'text-gray-600 hover:text-[#125862]'
-            }`}
-          >
-            <span>🗓️</span>
-            <span>الجدول الأسبوعي</span>
+            إلغاء التصفية ✕
           </button>
         </div>
+      )}
 
-        {/* Clean search bar when on today or students tab */}
-        {activeTab !== 'schedule' && teacherStudents.length > 0 && (
-          <div className="relative w-full sm:w-64">
-            <span className="material-symbols-outlined absolute right-3 top-2.5 text-gray-400 text-lg pointer-events-none">
-              search
-            </span>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="بحث باسم الطالب أو الهاتف..."
-              className="w-full h-10 pr-9 pl-7 rounded-xl bg-white text-xs text-gray-900 border border-gray-200/80 focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/30 shadow-2xs placeholder:text-gray-400"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute left-2.5 top-2.5 text-gray-400 hover:text-gray-600 text-xs"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-        )}
+      {/* 3. Directly Below: Single Compact Row (Search Box + Small Elegant [+ طالب جديد] Button) */}
+      <div className="flex items-center gap-2 sm:gap-3 w-full">
+        {/* Search Input spanning remaining space */}
+        <div className="relative flex-1">
+          <span className="material-symbols-outlined absolute right-3 top-2.5 text-gray-400 text-lg pointer-events-none">
+            search
+          </span>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="بحث باسم الطالب أو رقم الهاتف..."
+            className="w-full h-10 pr-9.5 pl-8 rounded-xl bg-white text-xs sm:text-sm text-gray-900 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/30 shadow-2xs placeholder:text-gray-400"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute left-2.5 top-2.5 text-gray-400 hover:text-gray-600 text-xs cursor-pointer p-0.5"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* Small & Elegant Add Student Button */}
+        <button
+          onClick={() => setIsAddStudentModalOpen(true)}
+          className="h-10 px-3.5 sm:px-5 rounded-xl bg-[#1A7B88] hover:bg-[#125862] text-white font-bold text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 active:scale-98"
+        >
+          <span className="material-symbols-outlined text-base">person_add</span>
+          <span className="whitespace-nowrap">+ طالب جديد</span>
+        </button>
       </div>
 
-      {/* 3. Empty State when Teacher has no students */}
+      {/* 4. Empty State when Teacher has no students */}
       {teacherStudents.length === 0 && !searchTerm && (
-        <div className="bg-white rounded-3xl p-8 sm:p-12 border border-gray-100 shadow-xs text-center flex flex-col items-center justify-center gap-3">
+        <div className="bg-white rounded-3xl p-8 sm:p-12 border border-gray-100 shadow-xs text-center flex flex-col items-center justify-center gap-3 w-full">
           <div className="w-16 h-16 rounded-2xl bg-[#EAF5F7] text-[#1A7B88] flex items-center justify-center shadow-xs">
             <span className="material-symbols-outlined text-3xl">menu_book</span>
           </div>
@@ -372,7 +385,7 @@ export const TeacherView: React.FC = () => {
             أهلاً بك في حلقتك المباركة!
           </h3>
           <p className="text-xs sm:text-sm text-gray-500 max-w-md leading-relaxed">
-            لا يوجد طلاب مضافون في حلقتك بعد. يمكنك البدء بإضافة طلابك وتحديد مواعيد حصصهم عبر الزر أدناه.
+            لا يوجد طلاب مضافون في حلقتك بعد. يمكنك البدء بإضافة طلابك وتحديد مواعيد حصصهم عبر الزر أعلاه.
           </p>
           <button
             onClick={() => setIsAddStudentModalOpen(true)}
@@ -384,11 +397,48 @@ export const TeacherView: React.FC = () => {
         </div>
       )}
 
-      {/* 4. Tab 1: حصص اليوم (Today's Classes) */}
-      {activeTab === 'today' && teacherStudents.length > 0 && (
-        <div>
+      {/* 5. Main Cards Display Area */}
+      {/* Case A: Specific day selected from horizontal strip */}
+      {selectedDayFilter && (
+        <div className="w-full">
+          {dayFilteredStudents.length === 0 ? (
+            <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-xs text-center flex flex-col items-center justify-center gap-2 w-full">
+              <span className="material-symbols-outlined text-4xl text-gray-300">
+                event_busy
+              </span>
+              <p className="text-sm font-bold text-gray-800">
+                لا توجد حصص مجدولة في يوم ({selectedDayFilter})
+              </p>
+              <button
+                onClick={() => setSelectedDayFilter(null)}
+                className="mt-2 px-4 py-2 rounded-xl bg-[#EAF5F7] text-[#125862] hover:bg-[#d9eff3] text-xs font-bold transition-all cursor-pointer border border-[#1A7B88]/20"
+              >
+                العودة لكافة الحصص
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4 w-full">
+              {dayFilteredStudents.map((student) => (
+                <StudentCard
+                  key={`day-${selectedDayFilter}-${student.id}`}
+                  student={student}
+                  onLogSession={handleOpenLogSession}
+                  onSubmitReport={handleOpenSubmitReport}
+                  onDownloadPdf={handleDownloadPdf}
+                  latestReport={getStudentLatestReport(student.id)}
+                  displayDay={selectedDayFilter}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Case B: Tab 1: حصص اليوم (when no custom day filter is selected) */}
+      {!selectedDayFilter && activeTab === 'today' && teacherStudents.length > 0 && (
+        <div className="w-full">
           {todayStudents.length === 0 ? (
-            <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-xs text-center flex flex-col items-center justify-center gap-2">
+            <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-xs text-center flex flex-col items-center justify-center gap-2 w-full">
               <span className="material-symbols-outlined text-4xl text-gray-300">
                 event_available
               </span>
@@ -396,7 +446,7 @@ export const TeacherView: React.FC = () => {
                 لا توجد حصص مجدولة لهذا اليوم ({todayWeekday})
               </p>
               <p className="text-xs text-gray-500">
-                يمكنك الانتقال لتبويب <strong>«قائمة الطلاب»</strong> لتسجيل حضور أي طالب خارج الجدول الأسبوعي
+                يمكنك النقر على أي يوم من الشريط الأسبوعي أعلاه أو الانتقال لتبويب <strong>«قائمة الطلاب»</strong>
               </p>
               <button
                 onClick={() => setActiveTab('students')}
@@ -406,7 +456,7 @@ export const TeacherView: React.FC = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4 w-full">
               {todayStudents.map((student) => (
                 <StudentCard
                   key={`today-${student.id}`}
@@ -415,7 +465,7 @@ export const TeacherView: React.FC = () => {
                   onSubmitReport={handleOpenSubmitReport}
                   onDownloadPdf={handleDownloadPdf}
                   latestReport={getStudentLatestReport(student.id)}
-                  todayWeekday={todayWeekday}
+                  displayDay={todayWeekday}
                 />
               ))}
             </div>
@@ -423,9 +473,9 @@ export const TeacherView: React.FC = () => {
         </div>
       )}
 
-      {/* 5. Tab 2: قائمة الطلاب (All Students) */}
-      {activeTab === 'students' && teacherStudents.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-4">
+      {/* Case C: Tab 2: قائمة الطلاب (All Students) */}
+      {!selectedDayFilter && activeTab === 'students' && teacherStudents.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4 w-full">
           {teacherStudents.map((student) => (
             <StudentCard
               key={`all-${student.id}`}
@@ -434,96 +484,24 @@ export const TeacherView: React.FC = () => {
               onSubmitReport={handleOpenSubmitReport}
               onDownloadPdf={handleDownloadPdf}
               latestReport={getStudentLatestReport(student.id)}
-              todayWeekday={todayWeekday}
+              displayDay={todayWeekday}
             />
           ))}
         </div>
       )}
 
-      {/* 6. Tab 3: الجدول الأسبوعي (Weekly Schedule) */}
-      {activeTab === 'schedule' && teacherStudents.length > 0 && (
-        <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-100 shadow-xs flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-100">
-            <div>
-              <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
-                <span className="material-symbols-outlined text-[#1A7B88]">calendar_month</span>
-                <span>جدول المعلم الأسبوعي</span>
-              </h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                مواعيد الحصص الموزعة على مدار أيام الأسبوع بتوقيت القاهرة
-              </p>
-            </div>
-            <span className="text-xs font-bold text-[#125862] bg-[#EAF5F7] px-3 py-1 rounded-xl w-fit border border-[#1A7B88]/20">
-              إجمالي الطلاب: {teacherStudents.length}
-            </span>
-          </div>
+      {/* Mobile Bottom Navigation Bar (Fixed for phones) */}
+      <TeacherBottomNav
+        activeTab={activeTab}
+        onChangeTab={(tab) => {
+          setActiveTab(tab);
+          setSelectedDayFilter(null);
+        }}
+        todayCount={todayStudents.length}
+        studentsCount={teacherStudents.length}
+      />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3">
-            {ARABIC_WEEKDAYS.map((day) => {
-              const dayStudents = teacherStudents.filter((s) => s.scheduleDays?.includes(day));
-              const isToday = day === todayWeekday;
-
-              return (
-                <div
-                  key={day}
-                  className={`rounded-2xl p-3 border flex flex-col gap-2.5 transition-all ${
-                    isToday
-                      ? 'bg-[#EAF5F7]/70 border-[#1A7B88]/40 ring-2 ring-[#1A7B88]/15 shadow-xs'
-                      : 'bg-[#fafafa] border-gray-200/70'
-                  }`}
-                >
-                  <div className="flex items-center justify-between pb-2 border-b border-gray-200/60">
-                    <span className={`font-bold text-xs sm:text-sm ${isToday ? 'text-[#125862]' : 'text-gray-800'}`}>
-                      {day}
-                    </span>
-                    <span
-                      className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
-                        isToday ? 'bg-[#1A7B88] text-white' : 'bg-gray-200 text-gray-700'
-                      }`}
-                    >
-                      {dayStudents.length}
-                    </span>
-                  </div>
-
-                  {dayStudents.length === 0 ? (
-                    <div className="py-4 text-center text-[11px] text-gray-400">
-                      لا توجد حصص
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-2">
-                      {dayStudents.map((st) => (
-                        <div
-                          key={`${day}-${st.id}`}
-                          className="bg-white rounded-xl p-2.5 border border-gray-100 shadow-2xs hover:shadow-xs transition-all flex flex-col gap-1.5 text-xs cursor-pointer group"
-                          onClick={() => handleOpenLogSession(st)}
-                        >
-                          <div className="font-bold text-gray-900 truncate group-hover:text-[#1A7B88]">
-                            {st.name}
-                          </div>
-                          <div className="text-[11px] text-[#125862] font-medium flex items-center gap-1">
-                            <span className="material-symbols-outlined text-xs text-[#1A7B88]">schedule</span>
-                            <span>
-                              {st.daySchedule?.[day]
-                                ? `${st.daySchedule[day]} (بتوقيت القاهرة)`
-                                : st.sessionTime || '04:00 م'}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between pt-1 border-t border-gray-100 text-[10px] text-gray-500">
-                            <span>الدورة: {st.currentCycleSessionsCount || 0}/{st.packageSessionsCount || 8}</span>
-                            <span className="text-[#1A7B88] font-bold">تسجيل ✍️</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Fast Daily Session Log Modal */}
+      {/* Fast Daily Session Log Modal with Praise Chips */}
       <LogSessionModal
         isOpen={isLogSessionModalOpen}
         student={selectedStudentForLog}
