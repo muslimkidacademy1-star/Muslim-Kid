@@ -132,7 +132,7 @@ function AuthenticatedApp() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAF9] text-[#111c2d] flex flex-col font-sans" dir="rtl">
+    <div className="min-h-screen bg-[#F4F9FA] text-[#111c2d] flex flex-col font-sans" dir="rtl">
       {/* Super Admin Preview Bar - Rendered exclusively for mahmoudaliwahkotb@gmail.com and managers */}
       <SuperAdminViewBar onSelectRole={handleSwitchPreviewRole} />
 

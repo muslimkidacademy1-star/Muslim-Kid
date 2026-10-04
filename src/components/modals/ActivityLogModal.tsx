@@ -25,26 +25,27 @@ export const ActivityLogModal: React.FC<ActivityLogModalProps> = ({ isOpen, onCl
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl border border-[#bec8c8]/20 overflow-hidden flex flex-col max-h-[85vh] text-right">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150" dir="rtl">
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-3xl shadow-2xl border-t sm:border border-gray-100 overflow-hidden flex flex-col max-h-[90vh] h-[90vh] sm:h-auto text-right animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-[#bec8c8]/20 flex items-center justify-between bg-[#f0f3ff]">
-          <div className="flex items-center gap-2">
-            <span className="w-9 h-9 rounded-xl bg-[#005253]/10 text-[#005253] flex items-center justify-center">
-              <span className="material-symbols-outlined text-xl">history</span>
+        <div className="px-5 py-3.5 sm:px-6 sm:py-4 bg-[#125862] text-white flex items-center justify-between shrink-0 shadow-xs z-20">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="w-10 h-10 rounded-2xl bg-white/15 text-white flex items-center justify-center shadow-xs shrink-0">
+              <span className="material-symbols-outlined text-2xl">history</span>
             </span>
-            <div>
-              <span className="font-bold text-base text-[#111c2d] block">
+            <div className="min-w-0">
+              <span className="font-bold text-base sm:text-lg text-white block truncate">
                 سجل التعديلات والعمليات التاريخية (Activity Log)
               </span>
-              <span className="text-xs text-[#6f7979]">
+              <span className="text-xs text-[#EAF5F7] truncate block">
                 توثيق فوري لأي إضافة، تعديل، إجازة أو تقرير مع اسم المعدّل والتوقيت
               </span>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-[#6f7979] hover:bg-[#dee8ff]"
+            type="button"
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-colors cursor-pointer shrink-0 mr-2"
           >
             <span className="material-symbols-outlined text-xl">close</span>
           </button>
@@ -112,13 +113,14 @@ export const ActivityLogModal: React.FC<ActivityLogModalProps> = ({ isOpen, onCl
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-[#bec8c8]/20 bg-[#f0f3ff] flex items-center justify-between">
-          <span className="text-xs text-[#6f7979]">
+        <div className="p-3.5 sm:p-4 border-t border-gray-100 bg-white flex items-center justify-between shrink-0 shadow-lg sm:shadow-none z-20">
+          <span className="text-xs text-gray-500 font-medium">
             إجمالي العمليات الموثقة: {filteredLogs.length} عملية
           </span>
           <button
+            type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-[#005253] text-white text-xs font-bold hover:bg-[#186b6d]"
+            className="px-5 py-2.5 rounded-xl bg-[#1A7B88] hover:bg-[#125862] text-white text-xs font-bold transition-all cursor-pointer min-h-[42px]"
           >
             إغلاق
           </button>

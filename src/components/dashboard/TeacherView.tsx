@@ -63,7 +63,7 @@ const StudentCard: React.FC<StudentCardProps> = ({
           className={`px-2.5 py-1 rounded-full text-xs font-bold shrink-0 ${
             isCompleted
               ? 'bg-amber-50 text-amber-800 border border-amber-200'
-              : 'bg-emerald-50 text-emerald-800 border border-emerald-100'
+              : 'bg-[#EAF5F7] text-[#125862] border border-[#1A7B88]/20'
           }`}
         >
           {isCompleted ? `دورة مكتملة (${maxPkg}/${maxPkg}) ⭐` : `الحصة ${cycleCount} من ${maxPkg}`}
@@ -92,7 +92,7 @@ const StudentCard: React.FC<StudentCardProps> = ({
               href={getParentWhatsAppUrl(student.parentPhone, student.name)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 hover:bg-emerald-50 border border-gray-200/70 hover:border-emerald-200 text-gray-700 hover:text-emerald-900 transition-colors text-xs font-mono group"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-50 hover:bg-[#EAF5F7] border border-gray-200/70 hover:border-[#1A7B88]/40 text-gray-700 hover:text-[#125862] transition-colors text-xs font-mono group"
               title="محادثة واتساب مباشرة مع ولي الأمر"
             >
               <span className="w-4 h-4 rounded-full bg-[#25D366] text-white flex items-center justify-center text-[10px] group-hover:scale-110 transition-transform">
@@ -104,18 +104,18 @@ const StudentCard: React.FC<StudentCardProps> = ({
         ) : null}
       </div>
 
-      {/* Slim, elegant progress line in calm emerald */}
+      {/* Slim, elegant progress line in Teal #1A7B88 */}
       <div className="flex flex-col gap-1 pt-1">
         <div className="flex items-center justify-between text-[11px] text-gray-500 font-medium">
           <span>إنجاز الدورة ({cycleCount} من {maxPkg})</span>
-          <span className="font-mono text-emerald-800 font-bold">
+          <span className="font-mono text-[#125862] font-bold">
             {Math.round((cycleCount / maxPkg) * 100)}%
           </span>
         </div>
         <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-300 ${
-              isCompleted ? 'bg-amber-500' : 'bg-emerald-600'
+              isCompleted ? 'bg-amber-500' : 'bg-[#1A7B88]'
             }`}
             style={{ width: `${Math.min(100, (cycleCount / maxPkg) * 100)}%` }}
           />
@@ -126,7 +126,7 @@ const StudentCard: React.FC<StudentCardProps> = ({
       <div className="pt-1 flex flex-col gap-2">
         <button
           onClick={() => onLogSession(student)}
-          className="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer active:scale-98"
+          className="w-full py-2.5 px-4 rounded-xl bg-[#1A7B88] hover:bg-[#125862] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer active:scale-98"
         >
           <span className="material-symbols-outlined text-base">history_edu</span>
           <span>تسجيل حضور وإنجاز الحصة</span>
@@ -147,7 +147,7 @@ const StudentCard: React.FC<StudentCardProps> = ({
           <button
             type="button"
             onClick={() => onDownloadPdf(student, latestReport)}
-            className="w-full py-1.5 px-3 rounded-xl bg-gray-50 border border-gray-200 text-emerald-800 hover:bg-emerald-50 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            className="w-full py-1.5 px-3 rounded-xl bg-[#EAF5F7] border border-[#1A7B88]/20 text-[#125862] hover:bg-[#d9eff3] text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >
             <span className="material-symbols-outlined text-base">picture_as_pdf</span>
             <span>تحميل تقرير الدورة (PDF)</span>
@@ -252,12 +252,12 @@ export const TeacherView: React.FC = () => {
 
           {/* Quick stats in a single inline row */}
           <div className="flex items-center gap-2 text-xs text-gray-600 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 font-bold border border-emerald-100">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#EAF5F7] text-[#125862] font-bold border border-[#1A7B88]/25">
               <span>📅</span>
               <span>{todayStudents.length} حصص اليوم</span>
             </span>
 
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50 text-gray-700 font-medium border border-gray-200/70">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#EAF5F7] text-[#125862] font-medium border border-[#1A7B88]/25">
               <span>👥</span>
               <span>{teacherStudents.length} طلاب</span>
             </span>
@@ -272,7 +272,7 @@ export const TeacherView: React.FC = () => {
         {/* Compact Add Student Button */}
         <button
           onClick={() => setIsAddStudentModalOpen(true)}
-          className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer shrink-0 active:scale-98"
+          className="px-4 py-2 rounded-xl bg-[#1A7B88] hover:bg-[#125862] text-white font-bold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer shrink-0 active:scale-98"
         >
           <span className="material-symbols-outlined text-base">person_add</span>
           <span>+ إضافة طالب جديد</span>
@@ -281,22 +281,22 @@ export const TeacherView: React.FC = () => {
 
       {/* 2. Segmented Control Tabs (تبويبات التصفح العصرية تشبه تطبيقات الموبايل) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="inline-flex p-1 bg-gray-200/70 rounded-2xl gap-1 shadow-inner text-xs sm:text-sm font-bold w-full sm:w-auto">
+        <div className="inline-flex p-1 bg-[#EAF5F7] rounded-2xl gap-1 border border-[#1A7B88]/20 shadow-inner text-xs sm:text-sm font-bold w-full sm:w-auto">
           <button
             onClick={() => setActiveTab('today')}
             className={`flex-1 sm:flex-initial px-3.5 sm:px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
               activeTab === 'today'
-                ? 'bg-white text-emerald-800 shadow-xs'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-white text-[#125862] shadow-xs'
+                : 'text-gray-600 hover:text-[#125862]'
             }`}
           >
             <span>📌</span>
             <span>حصص اليوم</span>
             <span
-              className={`px-2 py-0.5 rounded-full text-[11px] ${
+              className={`px-2 py-0.5 rounded-full text-[11px] font-mono ${
                 activeTab === 'today'
-                  ? 'bg-emerald-50 text-emerald-800'
-                  : 'bg-gray-300/60 text-gray-700'
+                  ? 'bg-[#1A7B88] text-white'
+                  : 'bg-white/80 text-gray-700'
               }`}
             >
               {todayStudents.length}
@@ -307,17 +307,17 @@ export const TeacherView: React.FC = () => {
             onClick={() => setActiveTab('students')}
             className={`flex-1 sm:flex-initial px-3.5 sm:px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
               activeTab === 'students'
-                ? 'bg-white text-emerald-800 shadow-xs'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-white text-[#125862] shadow-xs'
+                : 'text-gray-600 hover:text-[#125862]'
             }`}
           >
             <span>👥</span>
             <span>قائمة الطلاب</span>
             <span
-              className={`px-2 py-0.5 rounded-full text-[11px] ${
+              className={`px-2 py-0.5 rounded-full text-[11px] font-mono ${
                 activeTab === 'students'
-                  ? 'bg-emerald-50 text-emerald-800'
-                  : 'bg-gray-300/60 text-gray-700'
+                  ? 'bg-[#1A7B88] text-white'
+                  : 'bg-white/80 text-gray-700'
               }`}
             >
               {teacherStudents.length}
@@ -328,8 +328,8 @@ export const TeacherView: React.FC = () => {
             onClick={() => setActiveTab('schedule')}
             className={`flex-1 sm:flex-initial px-3.5 sm:px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
               activeTab === 'schedule'
-                ? 'bg-white text-emerald-800 shadow-xs'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-white text-[#125862] shadow-xs'
+                : 'text-gray-600 hover:text-[#125862]'
             }`}
           >
             <span>🗓️</span>
@@ -348,7 +348,7 @@ export const TeacherView: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="بحث باسم الطالب أو الهاتف..."
-              className="w-full h-10 pr-9 pl-7 rounded-xl bg-white text-xs text-gray-900 border border-gray-200/80 focus:outline-none focus:ring-2 focus:ring-emerald-700/20 shadow-2xs placeholder:text-gray-400"
+              className="w-full h-10 pr-9 pl-7 rounded-xl bg-white text-xs text-gray-900 border border-gray-200/80 focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/30 shadow-2xs placeholder:text-gray-400"
             />
             {searchTerm && (
               <button
@@ -365,7 +365,7 @@ export const TeacherView: React.FC = () => {
       {/* 3. Empty State when Teacher has no students */}
       {teacherStudents.length === 0 && !searchTerm && (
         <div className="bg-white rounded-3xl p-8 sm:p-12 border border-gray-100 shadow-xs text-center flex flex-col items-center justify-center gap-3">
-          <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-xs">
+          <div className="w-16 h-16 rounded-2xl bg-[#EAF5F7] text-[#1A7B88] flex items-center justify-center shadow-xs">
             <span className="material-symbols-outlined text-3xl">menu_book</span>
           </div>
           <h3 className="text-lg font-bold text-gray-900">
@@ -376,7 +376,7 @@ export const TeacherView: React.FC = () => {
           </p>
           <button
             onClick={() => setIsAddStudentModalOpen(true)}
-            className="mt-2 px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs sm:text-sm shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+            className="mt-2 px-5 py-2.5 rounded-xl bg-[#1A7B88] hover:bg-[#125862] text-white font-bold text-xs sm:text-sm shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
           >
             <span className="material-symbols-outlined text-base">person_add</span>
             <span>+ إضافة طالب جديد</span>
@@ -400,7 +400,7 @@ export const TeacherView: React.FC = () => {
               </p>
               <button
                 onClick={() => setActiveTab('students')}
-                className="mt-2 px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold transition-all cursor-pointer"
+                className="mt-2 px-4 py-2 rounded-xl bg-[#EAF5F7] text-[#125862] hover:bg-[#d9eff3] text-xs font-bold transition-all cursor-pointer border border-[#1A7B88]/20"
               >
                 عرض كافة الطلاب ({teacherStudents.length})
               </button>
@@ -446,14 +446,14 @@ export const TeacherView: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-100">
             <div>
               <h3 className="font-bold text-base text-gray-900 flex items-center gap-2">
-                <span className="material-symbols-outlined text-emerald-700">calendar_month</span>
+                <span className="material-symbols-outlined text-[#1A7B88]">calendar_month</span>
                 <span>جدول المعلم الأسبوعي</span>
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">
                 مواعيد الحصص الموزعة على مدار أيام الأسبوع بتوقيت القاهرة
               </p>
             </div>
-            <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-xl w-fit">
+            <span className="text-xs font-bold text-[#125862] bg-[#EAF5F7] px-3 py-1 rounded-xl w-fit border border-[#1A7B88]/20">
               إجمالي الطلاب: {teacherStudents.length}
             </span>
           </div>
@@ -468,17 +468,17 @@ export const TeacherView: React.FC = () => {
                   key={day}
                   className={`rounded-2xl p-3 border flex flex-col gap-2.5 transition-all ${
                     isToday
-                      ? 'bg-emerald-50/50 border-emerald-300 ring-2 ring-emerald-600/10 shadow-xs'
+                      ? 'bg-[#EAF5F7]/70 border-[#1A7B88]/40 ring-2 ring-[#1A7B88]/15 shadow-xs'
                       : 'bg-[#fafafa] border-gray-200/70'
                   }`}
                 >
                   <div className="flex items-center justify-between pb-2 border-b border-gray-200/60">
-                    <span className={`font-bold text-xs sm:text-sm ${isToday ? 'text-emerald-800' : 'text-gray-800'}`}>
+                    <span className={`font-bold text-xs sm:text-sm ${isToday ? 'text-[#125862]' : 'text-gray-800'}`}>
                       {day}
                     </span>
                     <span
                       className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
-                        isToday ? 'bg-emerald-700 text-white' : 'bg-gray-200 text-gray-700'
+                        isToday ? 'bg-[#1A7B88] text-white' : 'bg-gray-200 text-gray-700'
                       }`}
                     >
                       {dayStudents.length}
@@ -497,11 +497,11 @@ export const TeacherView: React.FC = () => {
                           className="bg-white rounded-xl p-2.5 border border-gray-100 shadow-2xs hover:shadow-xs transition-all flex flex-col gap-1.5 text-xs cursor-pointer group"
                           onClick={() => handleOpenLogSession(st)}
                         >
-                          <div className="font-bold text-gray-900 truncate group-hover:text-emerald-700">
+                          <div className="font-bold text-gray-900 truncate group-hover:text-[#1A7B88]">
                             {st.name}
                           </div>
-                          <div className="text-[11px] text-emerald-800 font-medium flex items-center gap-1">
-                            <span className="material-symbols-outlined text-xs text-emerald-600">schedule</span>
+                          <div className="text-[11px] text-[#125862] font-medium flex items-center gap-1">
+                            <span className="material-symbols-outlined text-xs text-[#1A7B88]">schedule</span>
                             <span>
                               {st.daySchedule?.[day]
                                 ? `${st.daySchedule[day]} (بتوقيت القاهرة)`
@@ -510,7 +510,7 @@ export const TeacherView: React.FC = () => {
                           </div>
                           <div className="flex items-center justify-between pt-1 border-t border-gray-100 text-[10px] text-gray-500">
                             <span>الدورة: {st.currentCycleSessionsCount || 0}/{st.packageSessionsCount || 8}</span>
-                            <span className="text-emerald-700 font-bold">تسجيل ✍️</span>
+                            <span className="text-[#1A7B88] font-bold">تسجيل ✍️</span>
                           </div>
                         </div>
                       ))}

@@ -29,29 +29,22 @@ export const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
   const whatsAppUrl = getParentWhatsAppUrl(student.parentPhone, student.name);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
-      />
-
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150" dir="rtl">
       {/* Modal Dialog */}
       <div
-        className="relative bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-[#bec8c8]/30 flex flex-col max-h-[90vh] z-10 animate-in fade-in zoom-in-95 duration-150"
-        dir="rtl"
+        className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl border-t sm:border border-gray-100 flex flex-col max-h-[90vh] h-[90vh] sm:h-auto z-10 animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200"
       >
-        {/* Header */}
-        <div className="p-6 bg-linear-to-l from-[#005253] to-[#003738] text-white flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white text-lg font-bold border border-white/20 shadow-xs">
+        {/* Header (Dark Teal #125862) */}
+        <div className="px-5 py-3.5 sm:px-6 sm:py-4 bg-[#125862] text-white flex items-center justify-between shrink-0 shadow-xs z-20">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center text-white text-base font-bold border border-white/20 shadow-xs shrink-0">
               {student.initials}
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold">{student.name}</h2>
+                <h2 className="text-base sm:text-lg font-bold truncate">{student.name}</h2>
                 <span
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
                     student.status === 'active'
                       ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-400/30'
                       : student.status === 'vacation'
@@ -66,7 +59,7 @@ export const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
                     : 'منتهي'}
                 </span>
               </div>
-              <p className="text-xs text-[#a6eff1] mt-0.5">
+              <p className="text-xs text-[#EAF5F7] mt-0.5 truncate">
                 {teacher?.name || 'غير محدد'} • {student.surahProgress}
               </p>
             </div>
@@ -75,7 +68,7 @@ export const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
           <button
             onClick={onClose}
             type="button"
-            className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-colors"
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-colors cursor-pointer shrink-0 mr-2"
           >
             <span className="material-symbols-outlined text-xl">close</span>
           </button>
@@ -243,7 +236,7 @@ export const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
         </div>
 
         {/* Modal Actions Footer */}
-        <div className="p-4 bg-[#f0f3ff] border-t border-[#bec8c8]/20 flex items-center justify-between gap-2.5">
+        <div className="p-3.5 sm:p-4 bg-white border-t border-gray-100 flex items-center justify-between gap-2.5 shrink-0 z-20">
           <div className="flex items-center gap-2">
             {onAddReport && (
               <button
@@ -252,7 +245,7 @@ export const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
                   onClose();
                   onAddReport(student);
                 }}
-                className="px-3.5 py-2 rounded-xl bg-[#005253] text-white text-xs font-bold hover:bg-[#003e3f] transition-all flex items-center gap-1.5"
+                className="px-3.5 py-2.5 rounded-xl bg-[#1A7B88] text-white text-xs font-bold hover:bg-[#125862] transition-all flex items-center gap-1.5 cursor-pointer min-h-[42px]"
               >
                 <span className="material-symbols-outlined text-sm">fact_check</span>
                 <span>إضافة تقرير</span>
@@ -266,7 +259,7 @@ export const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
                   onClose();
                   onManageVacation(student);
                 }}
-                className="px-3 py-2 rounded-xl bg-[#ffdea9] text-[#7d5800] text-xs font-bold hover:bg-[#ffc969] transition-all flex items-center gap-1"
+                className="px-3 py-2.5 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold hover:bg-amber-200 transition-all flex items-center gap-1 cursor-pointer min-h-[42px]"
               >
                 <span className="material-symbols-outlined text-sm">event_available</span>
                 <span>الإجازة</span>
@@ -282,7 +275,7 @@ export const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
                   onClose();
                   onEditStudent(student);
                 }}
-                className="px-3 py-2 rounded-xl border border-[#bec8c8]/40 bg-white text-[#111c2d] text-xs font-semibold hover:bg-[#dee8ff] transition-all flex items-center gap-1"
+                className="px-3.5 py-2.5 rounded-xl border border-gray-200 bg-[#F4F9FA] text-[#125862] text-xs font-bold hover:bg-[#EAF5F7] transition-all flex items-center gap-1 cursor-pointer min-h-[42px]"
               >
                 <span className="material-symbols-outlined text-sm">edit</span>
                 <span>تعديل</span>
@@ -292,7 +285,7 @@ export const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-white border border-[#bec8c8]/40 text-[#6f7979] text-xs font-bold hover:bg-gray-100 transition-all"
+              className="px-4 py-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 text-xs font-bold hover:bg-gray-50 transition-all cursor-pointer min-h-[42px]"
             >
               إغلاق
             </button>

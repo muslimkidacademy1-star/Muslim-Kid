@@ -74,17 +74,17 @@ export const RecordObservationModal: React.FC<RecordObservationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-[#bec8c8]/20 overflow-hidden flex flex-col text-right">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150" dir="rtl">
+      <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-lg shadow-2xl border-t sm:border border-gray-100 overflow-hidden flex flex-col text-right max-h-[90vh] h-[90vh] sm:h-auto animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200">
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-[#bec8c8]/20 flex items-center justify-between bg-[#005253] text-white">
-          <div className="flex items-center gap-2.5">
-            <span className="w-10 h-10 rounded-2xl bg-white/15 text-white flex items-center justify-center">
+        <div className="px-5 py-3.5 sm:px-6 sm:py-4 bg-[#125862] text-white flex items-center justify-between shrink-0 shadow-xs z-20">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="w-10 h-10 rounded-2xl bg-white/15 text-white flex items-center justify-center shadow-xs shrink-0">
               <span className="material-symbols-outlined text-2xl">visibility</span>
             </span>
-            <div>
-              <h3 className="font-bold text-base">تسجيل ملاحظة مراقبة ميدانية</h3>
-              <p className="text-xs text-[#a6eff1]">
+            <div className="min-w-0">
+              <h3 className="font-bold text-base sm:text-lg text-white truncate">تسجيل ملاحظة مراقبة ميدانية</h3>
+              <p className="text-xs text-[#EAF5F7] truncate">
                 تقييم أداء المعلم أثناء الحصة المباشرة
               </p>
             </div>
@@ -92,7 +92,7 @@ export const RecordObservationModal: React.FC<RecordObservationModalProps> = ({
           <button
             onClick={onClose}
             type="button"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/80 hover:bg-white/15 transition-colors cursor-pointer"
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-colors cursor-pointer shrink-0 mr-2"
           >
             <span className="material-symbols-outlined text-xl">close</span>
           </button>
@@ -232,18 +232,18 @@ export const RecordObservationModal: React.FC<RecordObservationModalProps> = ({
           )}
 
           {/* Footer actions */}
-          <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#bec8c8]/20">
+          <div className="p-3.5 sm:p-4 bg-white border-t border-gray-100 flex items-center justify-between gap-3 shrink-0 shadow-lg sm:shadow-none z-20">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl bg-[#dee8ff] text-[#3f4949] font-bold hover:bg-[#d8e3fb] transition-colors cursor-pointer text-xs"
+              className="px-5 py-3 rounded-xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors cursor-pointer text-xs min-h-[44px]"
             >
               إلغاء
             </button>
             <button
               type="submit"
               disabled={isSaved}
-              className="px-5 py-2.5 rounded-xl bg-[#005253] text-white font-bold hover:bg-[#186b6d] transition-all shadow-sm flex items-center gap-1.5 cursor-pointer text-xs disabled:opacity-50"
+              className="flex-1 sm:flex-initial px-6 py-3 rounded-xl bg-[#1A7B88] text-white font-bold hover:bg-[#125862] transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer text-xs disabled:opacity-50 min-h-[44px]"
             >
               <span className="material-symbols-outlined text-base">save</span>
               <span>{isSaved ? 'جاري الحفظ...' : 'حفظ تقييم المراقبة'}</span>

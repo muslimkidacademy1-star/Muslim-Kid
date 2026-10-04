@@ -89,10 +89,10 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-emerald-700 text-white flex items-center justify-center shadow-xs">
+            <div className="w-7 h-7 rounded-lg bg-[#1A7B88] text-white flex items-center justify-center shadow-xs">
               <span className="material-symbols-outlined text-base">menu_book</span>
             </div>
-            <span className="font-bold text-sm sm:text-base text-gray-900 tracking-tight">
+            <span className="font-bold text-sm sm:text-base text-[#125862] tracking-tight">
               أكاديمية المسلم الصغير
             </span>
           </div>
@@ -101,14 +101,14 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Left Side: Teacher Name Badge & Light Logout Button */}
         <div className="flex items-center gap-3 sm:gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-xs">
+            <div className="w-7 h-7 rounded-full bg-[#EAF5F7] text-[#125862] font-bold flex items-center justify-center text-xs border border-[#1A7B88]/20">
               {currentUser.initials}
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-xs sm:text-sm font-bold text-gray-800">
                 {currentUser.name}
               </span>
-              <span className="hidden sm:inline-block text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">
+              <span className="hidden sm:inline-block text-[11px] text-[#125862] bg-[#EAF5F7] px-2 py-0.5 rounded-full font-medium border border-[#1A7B88]/20">
                 {circleName}
               </span>
             </div>
@@ -133,38 +133,38 @@ export const Header: React.FC<HeaderProps> = ({
     <header
       className={`fixed ${
         isSuperAdmin ? 'top-11' : 'top-0'
-      } right-0 lg:right-72 left-0 h-16 bg-[#f9f9ff]/90 backdrop-blur-xl border-b border-[#bec8c8]/20 z-40 flex items-center justify-between px-4 sm:px-6 transition-all duration-200`}
+      } right-0 lg:right-72 left-0 h-16 bg-[#F4F9FA]/95 backdrop-blur-xl border-b border-gray-200/70 z-40 flex items-center justify-between px-4 sm:px-6 transition-all duration-200`}
     >
       {/* Right Side in RTL: Breadcrumb & Mobile Menu */}
       <div className="flex items-center gap-3">
         {/* Mobile menu toggle */}
         <button
           onClick={onToggleSidebar}
-          className="lg:hidden w-9 h-9 rounded-xl bg-white border border-[#bec8c8]/30 flex items-center justify-center text-[#005253] hover:bg-[#e7eeff] transition-colors"
+          className="lg:hidden w-9 h-9 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-[#125862] hover:bg-[#EAF5F7] transition-colors"
           title="القائمة الجانبية"
         >
           <span className="material-symbols-outlined text-xl">menu</span>
         </button>
 
-        <div className="flex items-center gap-1.5 text-[#6f7979]">
-          <span className="font-semibold text-sm sm:text-base text-[#111c2d]">
+        <div className="flex items-center gap-1.5 text-gray-500">
+          <span className="font-semibold text-sm sm:text-base text-[#125862]">
             منصة الإدارة والتحفيظ
           </span>
           <span className="material-symbols-outlined text-sm sm:text-base">chevron_left</span>
-          <span className="text-xs sm:text-sm text-[#6f7979] hidden md:inline">
+          <span className="text-xs sm:text-sm text-gray-500 hidden md:inline">
             متابعة الحلقات اليومية
           </span>
         </div>
       </div>
 
       {/* Screen Switcher Tab (لوحة التحكم vs شاشة الطلاب vs شاشة المعلمين) */}
-      <div className="hidden sm:flex items-center bg-[#f0f3ff] p-1 rounded-xl border border-[#bec8c8]/30 shadow-xs">
+      <div className="hidden sm:flex items-center bg-[#EAF5F7] p-1 rounded-xl border border-[#1A7B88]/20 shadow-xs">
         <button
           onClick={() => onSelectTab && onSelectTab('dashboard')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'dashboard'
-              ? 'bg-[#005253] text-white shadow-xs'
-              : 'text-[#3f4949] hover:text-[#005253] hover:bg-white/60'
+              ? 'bg-[#1A7B88] text-white shadow-xs'
+              : 'text-gray-700 hover:text-[#125862] hover:bg-white/60'
           }`}
           title="الانتقال إلى اللوحة التنفيذية"
         >
@@ -175,8 +175,8 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={() => onSelectTab && onSelectTab('students')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'students'
-              ? 'bg-[#005253] text-white shadow-xs'
-              : 'text-[#3f4949] hover:text-[#005253] hover:bg-white/60'
+              ? 'bg-[#1A7B88] text-white shadow-xs'
+              : 'text-gray-700 hover:text-[#125862] hover:bg-white/60'
           }`}
           title="الانتقال إلى شاشة متابعة الطلاب"
         >
@@ -187,8 +187,8 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={() => onSelectTab && onSelectTab('teachers')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'teachers'
-              ? 'bg-[#005253] text-white shadow-xs'
-              : 'text-[#3f4949] hover:text-[#005253] hover:bg-white/60'
+              ? 'bg-[#1A7B88] text-white shadow-xs'
+              : 'text-gray-700 hover:text-[#125862] hover:bg-white/60'
           }`}
           title="الانتقال إلى شاشة متابعة المعلمين"
         >
@@ -204,7 +204,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Search Bar */}
         <div className="relative hidden md:block">
-          <span className="material-symbols-outlined absolute right-3 top-2.5 text-[#6f7979] text-lg pointer-events-none">
+          <span className="material-symbols-outlined absolute right-3 top-2.5 text-gray-400 text-lg pointer-events-none">
             search
           </span>
           <input
@@ -212,13 +212,13 @@ export const Header: React.FC<HeaderProps> = ({
             value={searchTerm}
             onChange={handleSearchChange}
             placeholder="بحث سريع عن طالب، حلقة، أو تقرير..."
-            className="w-56 lg:w-64 h-10 pr-9 pl-4 rounded-xl bg-[#f0f3ff] text-[#111c2d] placeholder:text-[#6f7979] text-sm focus:outline-none focus:ring-2 focus:ring-[#005253]/30 transition-all"
+            className="w-56 lg:w-64 h-10 pr-9 pl-4 rounded-xl bg-white text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/30 border border-gray-200 transition-all"
           />
         </div>
 
         {/* User Role Badge & Logout (Strict Authenticated Role Only) */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#e7eeff] border border-[#bec8c8]/30 text-[#005253] text-xs sm:text-sm font-semibold shadow-xs">
+          <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#EAF5F7] border border-[#1A7B88]/20 text-[#125862] text-xs sm:text-sm font-semibold shadow-xs">
             <span className="material-symbols-outlined text-base sm:text-lg">
               {currentUser.role === 'manager' ? 'admin_panel_settings' : 'shield_person'}
             </span>
@@ -238,7 +238,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="relative" ref={notifRef}>
           <button
             onClick={() => setShowNotifications(!showNotifications)}
-            className="relative w-10 h-10 rounded-xl bg-[#f0f3ff] flex items-center justify-center text-[#3f4949] hover:bg-[#dee8ff] hover:text-[#111c2d] transition-colors"
+            className="relative w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-[#EAF5F7] hover:text-[#125862] transition-colors"
             title="الإشعارات والتنبيهات التلقائية"
           >
             <span className="material-symbols-outlined text-xl">notifications</span>
@@ -251,13 +251,13 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Notifications dropdown popup */}
           {showNotifications && (
-            <div className="absolute left-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white shadow-2xl border border-[#bec8c8]/30 py-2 z-50 text-right animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-4 py-2.5 border-b border-[#bec8c8]/20 flex items-center justify-between">
+            <div className="absolute left-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white shadow-2xl border border-gray-200 py-2 z-50 text-right animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[#005253] text-lg">
+                  <span className="material-symbols-outlined text-[#1A7B88] text-lg">
                     notifications_active
                   </span>
-                  <span className="font-bold text-sm text-[#111c2d]">التنبيهات التلقائية</span>
+                  <span className="font-bold text-sm text-[#125862]">التنبيهات التلقائية</span>
                   <span className="text-xs bg-[#ffdad6] text-[#93000a] px-2 py-0.5 rounded-full font-bold">
                     {unreadCount} جديد
                   </span>
@@ -265,7 +265,7 @@ export const Header: React.FC<HeaderProps> = ({
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllNotificationsAsRead}
-                    className="text-xs text-[#005253] hover:underline cursor-pointer"
+                    className="text-xs text-[#1A7B88] hover:underline cursor-pointer"
                   >
                     تحديد الكل كمقروء
                   </button>

@@ -68,27 +68,20 @@ export const AddTeacherModal: React.FC<AddTeacherModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
-      />
-
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150" dir="rtl">
       {/* Modal Dialog */}
       <div
-        className="relative bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-[#bec8c8]/30 flex flex-col max-h-[90vh] z-10 animate-in fade-in zoom-in-95 duration-150"
-        dir="rtl"
+        className="relative bg-white rounded-t-3xl sm:rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl border-t sm:border border-gray-100 flex flex-col max-h-[90vh] h-[90vh] sm:h-auto z-10 animate-in slide-in-from-bottom-6 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200"
       >
         {/* Header */}
-        <div className="p-6 bg-linear-to-l from-[#005253] to-[#003738] text-white flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-white">
+        <div className="px-5 py-3.5 sm:px-6 sm:py-4 bg-[#125862] text-white flex items-center justify-between shrink-0 shadow-xs z-20">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center text-white shrink-0 shadow-xs">
               <span className="material-symbols-outlined text-2xl">person_add</span>
             </div>
-            <div>
-              <h2 className="text-lg font-bold">إضافة معلم / محفظ جديد</h2>
-              <p className="text-xs text-[#a6eff1] mt-0.5">
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-bold truncate">إضافة معلم / محفظ جديد</h2>
+              <p className="text-xs text-[#EAF5F7] mt-0.5 truncate">
                 تسجيل المعلم في المنظومة وإسناده للمشرف المباشر
               </p>
             </div>
@@ -96,7 +89,7 @@ export const AddTeacherModal: React.FC<AddTeacherModalProps> = ({
           <button
             onClick={onClose}
             type="button"
-            className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 transition-colors"
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-white/80 hover:text-white hover:bg-white/15 transition-colors cursor-pointer shrink-0 mr-2"
           >
             <span className="material-symbols-outlined text-xl">close</span>
           </button>
@@ -250,17 +243,17 @@ export const AddTeacherModal: React.FC<AddTeacherModalProps> = ({
           </div>
 
           {/* Footer Actions */}
-          <div className="pt-4 border-t border-[#bec8c8]/20 flex items-center justify-end gap-3">
+          <div className="p-3.5 sm:p-4 bg-white border-t border-gray-100 flex items-center justify-between gap-3 shrink-0 shadow-lg sm:shadow-none z-20">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-xl border border-[#bec8c8]/40 text-[#3f4949] text-sm font-semibold hover:bg-[#f0f3ff] transition-colors"
+              className="px-5 py-3 rounded-xl border border-gray-200 text-gray-700 font-bold hover:bg-gray-50 transition-colors cursor-pointer text-xs min-h-[44px]"
             >
               إلغاء
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-xl bg-[#005253] text-white text-sm font-bold shadow-md hover:bg-[#003e3f] active:scale-98 transition-all flex items-center gap-2"
+              className="flex-1 sm:flex-initial px-6 py-3 rounded-xl bg-[#1A7B88] text-white font-bold hover:bg-[#125862] shadow-sm active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer text-xs min-h-[44px]"
             >
               <span className="material-symbols-outlined text-lg">check</span>
               <span>حفظ وإضافة المعلم</span>
