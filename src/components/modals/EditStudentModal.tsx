@@ -28,8 +28,8 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState<SubscriptionStatus>('active');
   const [selectedDays, setSelectedDays] = useState<string[]>(['الأحد', 'الثلاثاء', 'الخميس']);
-  const [sessionTime, setSessionTime] = useState('04:30 م بتوقيت مكة');
-  const [meetingUrl, setMeetingUrl] = useState('');
+  const [sessionTime, setSessionTime] = useState('04:00 م (بتوقيت القاهرة)');
+  const [packageSessionsCount, setPackageSessionsCount] = useState<number>(8);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
   const canViewFinancials = currentUser.role === 'manager' || currentUser.role === 'general_supervisor';
@@ -47,8 +47,8 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
       setNotes(student.notes || '');
       setStatus(student.status);
       setSelectedDays(student.scheduleDays && student.scheduleDays.length > 0 ? student.scheduleDays : [getTodayArabicWeekday()]);
-      setSessionTime(student.sessionTime || '04:30 م بتوقيت مكة');
-      setMeetingUrl(student.meetingUrl || '');
+      setSessionTime(student.sessionTime || '04:00 م (بتوقيت القاهرة)');
+      setPackageSessionsCount(student.packageSessionsCount || 8);
       setShowConfirmDelete(false);
     }
   }, [student]);
@@ -89,7 +89,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
       status,
       scheduleDays: selectedDays,
       sessionTime: sessionTime.trim(),
-      meetingUrl: meetingUrl.trim() || undefined,
+      packageSessionsCount,
     });
     onClose();
   };
@@ -202,32 +202,46 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
             </div>
           </div>
 
-          {/* Session Time & Meeting Zoom link */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-[#111c2d] mb-1.5">
-                توقيت الحصة (بتوقيت مكة)
-              </label>
-              <input
-                type="text"
-                value={sessionTime}
-                onChange={(e) => setSessionTime(e.target.value)}
-                placeholder="مثال: 04:30 م بتوقيت مكة"
-                className="w-full h-10 px-3 rounded-xl bg-[#f0f3ff] text-[#111c2d] focus:outline-none"
-              />
-            </div>
+          {/* Session Time */}
+          <div>
+            <label className="block text-xs font-bold text-[#111c2d] mb-1.5">
+              مواعيد الحصة (بتوقيت القاهرة)
+            </label>
+            <input
+              type="text"
+              value={sessionTime}
+              onChange={(e) => setSessionTime(e.target.value)}
+              placeholder="مثال: 04:00 م (بتوقيت القاهرة)"
+              className="w-full h-10 px-3 rounded-xl bg-[#f0f3ff] text-[#111c2d] focus:outline-none"
+            />
+          </div>
 
-            <div>
-              <label className="block text-xs font-bold text-[#111c2d] mb-1.5">
-                رابط غرفة الزووم / التسميع
+          {/* Package Sessions Count Selector (8 / 12 / 16 / 24 حصة) */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-bold text-[#111c2d]">
+                إجمالي حصص الباقة الشهرية
               </label>
-              <input
-                type="url"
-                value={meetingUrl}
-                onChange={(e) => setMeetingUrl(e.target.value)}
-                placeholder="https://zoom.us/j/..."
-                className="w-full h-10 px-3 rounded-xl bg-[#f0f3ff] text-[#111c2d] focus:outline-none font-mono dir-ltr"
-              />
+              <span className="text-[11px] font-bold text-[#005253] bg-[#e7eeff] px-2 py-0.5 rounded-lg">
+                دورة الـ {packageSessionsCount} حصص
+              </span>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {[8, 12, 16, 24].map((count) => (
+                <button
+                  key={count}
+                  type="button"
+                  onClick={() => setPackageSessionsCount(count)}
+                  className={`py-2 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                    packageSessionsCount === count
+                      ? 'bg-[#005253] text-white shadow-xs ring-1 ring-[#005253]'
+                      : 'bg-[#f0f3ff] text-[#3f4949] hover:bg-[#dee8ff]'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-xs">auto_stories</span>
+                  <span>{count} حصة</span>
+                </button>
+              ))}
             </div>
           </div>
 

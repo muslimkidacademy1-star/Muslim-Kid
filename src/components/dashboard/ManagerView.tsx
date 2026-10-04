@@ -397,9 +397,16 @@ export const ManagerView: React.FC<ManagerViewProps> = () => {
 
                       <div className="flex items-center justify-between pt-1 border-t border-[#bae6fd]/40 text-[11px] text-gray-600">
                         <span>هاتف ولي الأمر:</span>
-                        <span className="font-mono font-bold text-[#005253] dir-ltr">
-                          {student.parentPhone}
-                        </span>
+                        <a
+                          href={getParentWhatsAppUrl(student.parentPhone, student.name)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[#128C7E] hover:text-[#075E54] font-mono font-bold dir-ltr hover:underline"
+                          title="محادثة ولي الأمر مباشرة عبر واتساب"
+                        >
+                          <span className="material-symbols-outlined text-xs text-[#25D366]">chat</span>
+                          <span>{student.parentPhone}</span>
+                        </a>
                       </div>
                     </div>
                   </div>

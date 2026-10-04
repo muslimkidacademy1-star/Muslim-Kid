@@ -37,8 +37,11 @@ export interface Student {
   name: string;
   teacherId: string; // المعلم المسؤول
   parentPhone: string; // رقم ولي الأمر الإداري
-  subscriptionFee: number; // قيمة الاشتراك بالريال
+  subscriptionFee: number; // قيمة الاشتراك بالريال أو الجنيه
+  currency?: 'SAR' | 'EGP'; // العملة: ر.س / ج.م
   teacherCost?: number; // مصروفات/مستحقات المعلم لهذا الطالب
+  teacherCostType?: 'fixed' | 'percentage'; // قيمة ثابتة أو نسبة مئوية
+  teacherCostPercentage?: number; // النسبة المئوية إن وجدت
   subscriptionDate: string; // تاريخ اشتراك الطالب
   lastReportDate: string; // تاريخ آخر تقرير
   status: SubscriptionStatus; // حالة الاشتراك: نشط / منتهي / إجازة
@@ -51,9 +54,12 @@ export interface Student {
   initials: string;
   // مواعيد الحصص وجدول التسميع
   scheduleDays?: string[]; // أيام الحصص في الأسبوع: الأحد، الإثنين، إلخ
-  sessionTime?: string; // توقيت الحصة بتوقيت مكة المكرمة
+  sessionTime?: string; // توقيت الحصة (بتوقيت القاهرة)
+  daySchedule?: Record<string, string>; // توقيت كل يوم على حدة: { 'الأحد': '03:00 م', 'الأربعاء': '04:00 م' }
+  sessionDuration?: number; // مدة الحصة: 30 / 45 / 60 دقيقة
   meetingUrl?: string; // رابط غرفة الزووم أو التسميع
-  currentCycleSessionsCount?: number; // عداد الحصص المنجزة في دورة الـ 8 حصص الحالية (من 0 إلى 8)
+  packageSessionsCount?: number; // إجمالي حصص الباقة الشهرية (8 / 12 / 16 / 24 حصة، الافتراضي 8)
+  currentCycleSessionsCount?: number; // عداد الحصص المنجزة في دورة الحصص الحالية
 }
 
 export interface SessionLog {

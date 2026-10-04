@@ -303,7 +303,7 @@ export const StudentsListView: React.FC<StudentsListViewProps> = ({
 
                       {/* Subscription amount */}
                       <td className="py-3.5 px-4 font-mono font-bold text-[#005253]">
-                        {student.subscriptionFee} ر.س
+                        {student.subscriptionFee} {student.currency === 'EGP' ? 'ج.م' : 'ر.س'}
                       </td>
 
                       {/* Status */}
@@ -337,20 +337,22 @@ export const StudentsListView: React.FC<StudentsListViewProps> = ({
 
                       {/* Parent Phone & WhatsApp */}
                       <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs text-[#3f4949] dir-ltr">{student.parentPhone}</span>
-                          {student.parentPhone && (
-                            <a
-                              href={parentWhatsApp}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 flex items-center justify-center transition-colors shadow-2xs"
-                              title="محادثة واتساب مع ولي الأمر"
-                            >
-                              <span className="material-symbols-outlined text-sm">chat</span>
-                            </a>
-                          )}
-                        </div>
+                        {student.parentPhone ? (
+                          <a
+                            href={parentWhatsApp}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-mono text-xs font-bold transition-all shadow-2xs border border-emerald-200/60 group"
+                            title="فتح محادثة واتساب مباشرة مع ولي الأمر"
+                          >
+                            <span className="material-symbols-outlined text-sm text-[#25D366] group-hover:scale-110 transition-transform">
+                              chat
+                            </span>
+                            <span className="dir-ltr">{student.parentPhone}</span>
+                          </a>
+                        ) : (
+                          <span className="text-gray-400 text-xs">غير مسجل</span>
+                        )}
                       </td>
 
                       {/* Actions */}

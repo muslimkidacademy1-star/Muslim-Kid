@@ -35,6 +35,7 @@ export const AddReportModal: React.FC<AddReportModalProps> = ({
 
   const currentStudent = student || students.find((s) => s.id === selectedStudentId);
   const teacher = currentStudent ? getTeacherById(currentStudent.teacherId) : undefined;
+  const targetPackageCount = currentStudent?.packageSessionsCount || 8;
 
   useEffect(() => {
     const targetStudent = student || (students.length > 0 ? (selectedStudentId ? students.find(s => s.id === selectedStudentId) : students[0]) : null);
@@ -91,7 +92,7 @@ export const AddReportModal: React.FC<AddReportModalProps> = ({
     if (!currentStudent) return;
     if (!memorizationDetails.trim()) return;
 
-    const performanceSummary = `أتم دورة الـ 8 حصص بحفظ: ${memorizationDetails.trim()}، ومراجعة: ${revisionDetails.trim() || 'المقرر السابق'}. التقييم: ${grade}.`;
+    const performanceSummary = `أتم دورة الـ ${targetPackageCount} حصص بحفظ: ${memorizationDetails.trim()}، ومراجعة: ${revisionDetails.trim() || 'المقرر السابق'}. التقييم: ${grade}.`;
 
     const isTeacher = currentUser.role === 'teacher';
 
@@ -106,7 +107,7 @@ export const AddReportModal: React.FC<AddReportModalProps> = ({
       revisionDetails: revisionDetails.trim(),
       teacherNotes: teacherNotes.trim(),
       studentEncouragement: studentEncouragement.trim(),
-      cycleSessionsCount: 8,
+      cycleSessionsCount: targetPackageCount,
       notes: teacherNotes.trim(),
       recordedBy: currentUser.name,
       submissionStatus: 'submitted_to_director',
@@ -129,14 +130,14 @@ export const AddReportModal: React.FC<AddReportModalProps> = ({
       studentId: currentStudent.id,
       teacherId: currentStudent.teacherId,
       reportDate,
-      performanceSummary: `أتم دورة الـ 8 حصص بنجاح: ${memorizationDetails}`,
+      performanceSummary: `أتم دورة الـ ${targetPackageCount} حصص بنجاح: ${memorizationDetails}`,
       memorizationScore: score,
       grade,
       memorizationDetails,
       revisionDetails,
       teacherNotes,
       studentEncouragement,
-      cycleSessionsCount: 8,
+      cycleSessionsCount: targetPackageCount,
       recordedBy: currentUser.name,
     };
 
@@ -159,7 +160,7 @@ export const AddReportModal: React.FC<AddReportModalProps> = ({
             </span>
             <div>
               <span className="font-bold text-base block">
-                نموذج تقرير دورة الـ 8 حصص القرآنية
+                نموذج تقرير دورة الـ {targetPackageCount} حصص القرآنية
               </span>
               <span className="text-xs text-[#a6eff1]">
                 تصفير عداد الـ 30 يوماً وتوليد شهادة PDF فاخرة وإرسال إشعار واتساب لولي الأمر
@@ -185,7 +186,7 @@ export const AddReportModal: React.FC<AddReportModalProps> = ({
               <h3 className="text-xl font-bold text-[#111c2d]">
                 {currentUser.role === 'teacher'
                   ? 'تم تسليم التقرير للإدارة / المدير بنجاح!'
-                  : 'تم اعتماد تقرير دورة الـ 8 حصص بنجاح!'}
+                  : `تم اعتماد تقرير دورة الـ ${targetPackageCount} حصص بنجاح!`}
               </h3>
               <p className="text-sm text-[#3f4949] mt-1">
                 تم تحديث تاريخ آخر تقرير للطالب{' '}

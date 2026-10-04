@@ -175,9 +175,10 @@ export const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
               <span className="font-bold text-xs text-[#111c2d]">
                 {student.surahProgress || 'جزء عمّ'}
               </span>
-              <span className="text-[11px] text-[#6f7979] block mt-1">
-                تاريخ البدء: {student.subscriptionDate}
-              </span>
+              <div className="flex items-center justify-between text-[11px] mt-1">
+                <span className="text-[#6f7979]">الباقة: دورة الـ {student.packageSessionsCount || 8} حصص</span>
+                <span className="text-[#005253] font-bold">({student.currentCycleSessionsCount || 0}/{student.packageSessionsCount || 8})</span>
+              </div>
             </div>
 
             {/* If sub_supervisor or teacher: hide financial fees completely, show schedule & time */}
@@ -187,24 +188,13 @@ export const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({
                   مواعيد الحصص الأسبوعية
                 </span>
                 <div className="font-bold text-xs text-[#005253]">
-                  {student.sessionTime || '04:30 م بتوقيت مكة'}
+                  {student.sessionTime || '04:00 م بتوقيت القاهرة'}
                 </div>
                 <span className="text-[11px] text-[#526060] block mt-1">
                   {student.scheduleDays && student.scheduleDays.length > 0
                     ? student.scheduleDays.join('، ')
                     : 'الأحد، الثلاثاء، الخميس'}
                 </span>
-                {student.meetingUrl && (
-                  <a
-                    href={student.meetingUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] text-[#0284c7] font-bold mt-1.5 hover:underline"
-                  >
-                    <span className="material-symbols-outlined text-xs">videocam</span>
-                    <span>غرفة التسميع (Zoom)</span>
-                  </a>
-                )}
               </div>
             ) : (
               <div className="p-3.5 rounded-xl bg-[#f0f3ff] border border-[#bec8c8]/20">

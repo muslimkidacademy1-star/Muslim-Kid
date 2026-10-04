@@ -64,8 +64,7 @@ export const EducationalSupervisorView: React.FC<EducationalSupervisorViewProps>
         return {
           student,
           teacher,
-          sessionTime: student.sessionTime || '04:30 م بتوقيت مكة',
-          meetingUrl: student.meetingUrl,
+          sessionTime: student.sessionTime || '04:00 م (بتوقيت القاهرة)',
         };
       });
   }, [visibleStudents, todayWeekday, getTeacherById]);
@@ -523,13 +522,14 @@ export const EducationalSupervisorView: React.FC<EducationalSupervisorViewProps>
                       <th className="py-3 px-3.5 rounded-r-xl">المعلم والحلقة</th>
                       <th className="py-3 px-3.5">اسم الطالب</th>
                       <th className="py-3 px-3.5">مسار الحفظ</th>
-                      <th className="py-3 px-3.5">توقيت الحصة (مكة)</th>
-                      <th className="py-3 px-3.5">دورة الـ 8 حصص</th>
+                      <th className="py-3 px-3.5">توقيت الحصة (القاهرة)</th>
+                      <th className="py-3 px-3.5">دورة الحصص</th>
                       <th className="py-3 px-3.5 text-center rounded-l-xl">إجراءات المراقبة الميدانية</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#bec8c8]/20">
-                    {todayClasses.map(({ student, teacher, sessionTime, meetingUrl }) => {
+                    {todayClasses.map(({ student, teacher, sessionTime }) => {
+                      const maxPkg = student.packageSessionsCount || 8;
                       const cycleCount = student.currentCycleSessionsCount || 0;
                       return (
                         <tr
@@ -558,9 +558,18 @@ export const EducationalSupervisorView: React.FC<EducationalSupervisorViewProps>
                             <div className="font-bold text-xs sm:text-sm text-[#111c2d]">
                               {student.name}
                             </div>
-                            <div className="text-[11px] text-[#6f7979] font-mono dir-ltr inline-block">
-                              {student.parentPhone}
-                            </div>
+                            {student.parentPhone && (
+                              <a
+                                href={getParentWhatsAppUrl(student.parentPhone, student.name)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[11px] text-[#128C7E] hover:text-[#075E54] font-mono dir-ltr font-bold hover:underline"
+                                title="محادثة واتساب مباشرة مع ولي الأمر"
+                              >
+                                <span className="material-symbols-outlined text-xs text-[#25D366]">chat</span>
+                                <span>{student.parentPhone}</span>
+                              </a>
+                            )}
                           </td>
 
                           {/* Progress */}
@@ -576,54 +585,31 @@ export const EducationalSupervisorView: React.FC<EducationalSupervisorViewProps>
                             </span>
                           </td>
 
-                          {/* 8-Session Cycle Progress */}
+                          {/* Cycle Progress */}
                           <td className="py-3 px-3.5">
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-black font-mono text-[#005253]">
-                                {cycleCount}/8
+                                {cycleCount}/{maxPkg}
                               </span>
                               <div className="w-16 bg-gray-200 h-2 rounded-full overflow-hidden flex">
                                 <div
                                   className="bg-[#005253] h-full"
-                                  style={{ width: `${Math.min(100, (cycleCount / 8) * 100)}%` }}
+                                  style={{ width: `${Math.min(100, (cycleCount / maxPkg) * 100)}%` }}
                                 />
                               </div>
                             </div>
                           </td>
 
                           {/* Observation Actions */}
-                          <td className="py-3 px-3.5">
-                            <div className="flex items-center justify-center gap-2">
-                              {/* Button: دخول الحصة */}
-                              {meetingUrl ? (
-                                <a
-                                  href={meetingUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="px-3 py-1.5 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs font-bold flex items-center gap-1 shadow-xs transition-colors"
-                                >
-                                  <span className="material-symbols-outlined text-sm">videocam</span>
-                                  <span>دخول الحصة</span>
-                                </a>
-                              ) : (
-                                <button
-                                  disabled
-                                  className="px-3 py-1.5 rounded-xl bg-gray-100 text-gray-400 text-xs font-medium cursor-not-allowed flex items-center gap-1"
-                                >
-                                  <span className="material-symbols-outlined text-sm">videocam_off</span>
-                                  <span>لا يوجد رابط</span>
-                                </button>
-                              )}
-
-                              {/* Button: تسجيل ملاحظة مراقبة */}
-                              <button
-                                onClick={() => handleOpenObservation(teacher, student)}
-                                className="px-3 py-1.5 rounded-xl bg-[#005253] hover:bg-[#186b6d] text-white text-xs font-bold flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
-                              >
-                                <span className="material-symbols-outlined text-sm">rate_review</span>
-                                <span>تسجيل ملاحظة مراقبة</span>
-                              </button>
-                            </div>
+                          <td className="py-3 px-3.5 text-center">
+                            {/* Button: تسجيل ملاحظة مراقبة */}
+                            <button
+                              onClick={() => handleOpenObservation(teacher, student)}
+                              className="px-3.5 py-1.5 rounded-xl bg-[#005253] hover:bg-[#186b6d] text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                            >
+                              <span className="material-symbols-outlined text-sm">rate_review</span>
+                              <span>تسجيل ملاحظة مراقبة</span>
+                            </button>
                           </td>
                         </tr>
                       );
@@ -634,14 +620,15 @@ export const EducationalSupervisorView: React.FC<EducationalSupervisorViewProps>
 
               {/* Mobile Vertical Cards View (Thumb-Friendly, No Horizontal Overflow) */}
               <div className="md:hidden flex flex-col gap-3.5">
-                {todayClasses.map(({ student, teacher, sessionTime, meetingUrl }) => {
+                {todayClasses.map(({ student, teacher, sessionTime }) => {
+                  const maxPkg = student.packageSessionsCount || 8;
                   const cycleCount = student.currentCycleSessionsCount || 0;
                   return (
                     <div
                       key={`mob-today-${student.id}`}
                       className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#bec8c8]/30 shadow-2xs flex flex-col gap-3"
                     >
-                      {/* Top Row: Teacher & Mecca Time */}
+                      {/* Top Row: Teacher & Cairo Time */}
                       <div className="flex items-center justify-between gap-2 border-b border-[#bec8c8]/20 pb-2.5">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className="w-9 h-9 rounded-xl bg-[#005253] text-white font-bold flex items-center justify-center text-xs flex-shrink-0 shadow-xs">
@@ -675,15 +662,15 @@ export const EducationalSupervisorView: React.FC<EducationalSupervisorViewProps>
                         </div>
 
                         <div className="flex flex-col items-end flex-shrink-0">
-                          <span className="text-[10px] text-[#6f7979]">دورة الـ 8 حصص</span>
+                          <span className="text-[10px] text-[#6f7979]">دورة الـ {maxPkg} حصص</span>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <span className="text-xs font-black font-mono text-[#005253]">
-                              {cycleCount}/8
+                              {cycleCount}/{maxPkg}
                             </span>
                             <div className="w-12 bg-gray-200 h-2 rounded-full overflow-hidden flex">
                               <div
                                 className="bg-[#005253] h-full"
-                                style={{ width: `${Math.min(100, (cycleCount / 8) * 100)}%` }}
+                                style={{ width: `${Math.min(100, (cycleCount / maxPkg) * 100)}%` }}
                               />
                             </div>
                           </div>
@@ -704,35 +691,15 @@ export const EducationalSupervisorView: React.FC<EducationalSupervisorViewProps>
                         </a>
                       </div>
 
-                      {/* Comfortable Thumb-friendly Action Buttons */}
-                      <div className="grid grid-cols-2 gap-2 pt-1">
-                        {meetingUrl ? (
-                          <a
-                            href={meetingUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="h-11 rounded-xl bg-[#0284c7] active:bg-[#0369a1] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-transform active:scale-98"
-                          >
-                            <span className="material-symbols-outlined text-lg">videocam</span>
-                            <span>دخول الحصة</span>
-                          </a>
-                        ) : (
-                          <button
-                            disabled
-                            className="h-11 rounded-xl bg-gray-100 text-gray-400 text-xs font-medium cursor-not-allowed flex items-center justify-center gap-1.5"
-                          >
-                            <span className="material-symbols-outlined text-lg">videocam_off</span>
-                            <span>لا يوجد رابط</span>
-                          </button>
-                        )}
-
+                      {/* Comfortable Action Button */}
+                      <div className="pt-1">
                         <button
                           type="button"
                           onClick={() => handleOpenObservation(teacher, student)}
-                          className="h-11 rounded-xl bg-[#005253] active:bg-[#186b6d] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-transform active:scale-98 cursor-pointer"
+                          className="w-full h-11 rounded-xl bg-[#005253] active:bg-[#186b6d] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-transform active:scale-98 cursor-pointer"
                         >
                           <span className="material-symbols-outlined text-lg">rate_review</span>
-                          <span>تسجيل ملاحظة</span>
+                          <span>تسجيل ملاحظة مراقبة</span>
                         </button>
                       </div>
                     </div>
@@ -817,7 +784,7 @@ export const EducationalSupervisorView: React.FC<EducationalSupervisorViewProps>
                         </span>
 
                         <span className="text-[11px] font-bold text-[#526060]">
-                          دورة: {student.currentCycleSessionsCount || 0}/8 حصص
+                          دورة: {student.currentCycleSessionsCount || 0}/{student.packageSessionsCount || 8} حصص
                         </span>
                       </div>
 
@@ -967,6 +934,7 @@ export const EducationalSupervisorView: React.FC<EducationalSupervisorViewProps>
               const isRed = repInfo.isOverdue && student.status === 'active';
               const isYellow = repInfo.isWarning && student.status === 'active';
               const cycleCount = student.currentCycleSessionsCount || 0;
+              const maxPkg = student.packageSessionsCount || 8;
 
               return (
                 <div
@@ -1033,14 +1001,14 @@ export const EducationalSupervisorView: React.FC<EducationalSupervisorViewProps>
                       <div className="flex items-center justify-between">
                         <span className="text-[#6f7979]">توقيت الحصة:</span>
                         <span className="font-bold text-[#111c2d]">
-                          {student.sessionTime || '04:30 م بتوقيت مكة'}
+                          {student.sessionTime || '04:00 م (بتوقيت القاهرة)'}
                         </span>
                       </div>
 
                       <div className="flex items-center justify-between pt-1 border-t border-[#bec8c8]/20">
-                        <span className="text-[#6f7979]">إنجاز دورة الـ 8 حصص:</span>
+                        <span className="text-[#6f7979]">إنجاز دورة الـ {maxPkg} حصص:</span>
                         <span className="font-black text-[#005253]">
-                          {cycleCount} / 8 حصص
+                          {cycleCount} / {maxPkg} حصص
                         </span>
                       </div>
                     </div>
@@ -1150,7 +1118,6 @@ export const EducationalSupervisorView: React.FC<EducationalSupervisorViewProps>
         teacher={selectedObservationTeacher}
         student={selectedObservationStudent}
         sessionTime={selectedObservationStudent?.sessionTime}
-        meetingUrl={selectedObservationStudent?.meetingUrl}
       />
     </div>
   );

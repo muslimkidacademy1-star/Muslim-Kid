@@ -22,6 +22,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const {
     currentUser,
+    teachers,
     notifications,
     students,
     isOverdue,
@@ -64,6 +65,70 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
+  // Dedicated Minimalist Clean Header for Teacher Portal (Unified Slim Navbar)
+  if (currentUser.role === 'teacher') {
+    const teacherObj = teachers.find(
+      (t) => t.id === currentUser.teacherId || t.name === currentUser.name || t.id === currentUser.id
+    );
+    const circleName = teacherObj?.circleName || (currentUser as any).circleName || 'حلقة القرآن الكريم';
+
+    return (
+      <header
+        className={`fixed ${
+          isSuperAdmin ? 'top-11' : 'top-0'
+        } right-0 lg:right-72 left-0 h-14 bg-white/95 backdrop-blur-md border-b border-gray-100/90 z-40 flex items-center justify-between px-4 sm:px-6 transition-all duration-200 shadow-2xs`}
+      >
+        {/* Right Side: Small Academy Logo & Academy Name */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onToggleSidebar}
+            className="lg:hidden w-8 h-8 rounded-lg bg-gray-50 border border-gray-200/70 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors"
+            title="القائمة الجانبية"
+          >
+            <span className="material-symbols-outlined text-lg">menu</span>
+          </button>
+
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-emerald-700 text-white flex items-center justify-center shadow-xs">
+              <span className="material-symbols-outlined text-base">menu_book</span>
+            </div>
+            <span className="font-bold text-sm sm:text-base text-gray-900 tracking-tight">
+              أكاديمية المسلم الصغير
+            </span>
+          </div>
+        </div>
+
+        {/* Left Side: Teacher Name Badge & Light Logout Button */}
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center text-xs">
+              {currentUser.initials}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs sm:text-sm font-bold text-gray-800">
+                {currentUser.name}
+              </span>
+              <span className="hidden sm:inline-block text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">
+                {circleName}
+              </span>
+            </div>
+          </div>
+
+          <div className="h-4 w-px bg-gray-200 hidden sm:block" />
+
+          <button
+            onClick={logout}
+            className="px-2.5 py-1.5 rounded-lg text-gray-500 hover:text-rose-600 hover:bg-rose-50 transition-colors flex items-center gap-1 cursor-pointer text-xs font-medium"
+            title="تسجيل الخروج"
+          >
+            <span className="material-symbols-outlined text-base">logout</span>
+            <span className="hidden sm:inline">تسجيل خروج</span>
+          </button>
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header
       className={`fixed ${
@@ -90,55 +155,47 @@ export const Header: React.FC<HeaderProps> = ({
             متابعة الحلقات اليومية
           </span>
         </div>
-
-        {/* Semester pill */}
-        <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 bg-[#dee8ff] rounded-full text-[#005253] text-xs font-semibold">
-          <span className="material-symbols-outlined text-sm">calendar_today</span>
-          <span>الفصل الدراسي الثاني 1445 - 2024</span>
-        </div>
       </div>
 
-      {/* Screen Switcher Tab (لوحة التحكم vs شاشة الطلاب vs شاشة المعلمين) - مخفية لدور المعلم */}
-      {currentUser.role !== 'teacher' && (
-        <div className="hidden sm:flex items-center bg-[#f0f3ff] p-1 rounded-xl border border-[#bec8c8]/30 shadow-xs">
-          <button
-            onClick={() => onSelectTab && onSelectTab('dashboard')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'dashboard'
-                ? 'bg-[#005253] text-white shadow-xs'
-                : 'text-[#3f4949] hover:text-[#005253] hover:bg-white/60'
-            }`}
-            title="الانتقال إلى اللوحة التنفيذية"
-          >
-            <span className="material-symbols-outlined text-base">dashboard</span>
-            <span>لوحة التحكم</span>
-          </button>
-          <button
-            onClick={() => onSelectTab && onSelectTab('students')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'students'
-                ? 'bg-[#005253] text-white shadow-xs'
-                : 'text-[#3f4949] hover:text-[#005253] hover:bg-white/60'
-            }`}
-            title="الانتقال إلى شاشة متابعة الطلاب"
-          >
-            <span className="material-symbols-outlined text-base">school</span>
-            <span>شاشة الطلاب</span>
-          </button>
-          <button
-            onClick={() => onSelectTab && onSelectTab('teachers')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'teachers'
-                ? 'bg-[#005253] text-white shadow-xs'
-                : 'text-[#3f4949] hover:text-[#005253] hover:bg-white/60'
-            }`}
-            title="الانتقال إلى شاشة متابعة المعلمين"
-          >
-            <span className="material-symbols-outlined text-base">badge</span>
-            <span>شاشة المعلمين</span>
-          </button>
-        </div>
-      )}
+      {/* Screen Switcher Tab (لوحة التحكم vs شاشة الطلاب vs شاشة المعلمين) */}
+      <div className="hidden sm:flex items-center bg-[#f0f3ff] p-1 rounded-xl border border-[#bec8c8]/30 shadow-xs">
+        <button
+          onClick={() => onSelectTab && onSelectTab('dashboard')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'dashboard'
+              ? 'bg-[#005253] text-white shadow-xs'
+              : 'text-[#3f4949] hover:text-[#005253] hover:bg-white/60'
+          }`}
+          title="الانتقال إلى اللوحة التنفيذية"
+        >
+          <span className="material-symbols-outlined text-base">dashboard</span>
+          <span>لوحة التحكم</span>
+        </button>
+        <button
+          onClick={() => onSelectTab && onSelectTab('students')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'students'
+              ? 'bg-[#005253] text-white shadow-xs'
+              : 'text-[#3f4949] hover:text-[#005253] hover:bg-white/60'
+          }`}
+          title="الانتقال إلى شاشة متابعة الطلاب"
+        >
+          <span className="material-symbols-outlined text-base">school</span>
+          <span>شاشة الطلاب</span>
+        </button>
+        <button
+          onClick={() => onSelectTab && onSelectTab('teachers')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'teachers'
+              ? 'bg-[#005253] text-white shadow-xs'
+              : 'text-[#3f4949] hover:text-[#005253] hover:bg-white/60'
+          }`}
+          title="الانتقال إلى شاشة متابعة المعلمين"
+        >
+          <span className="material-symbols-outlined text-base">badge</span>
+          <span>شاشة المعلمين</span>
+        </button>
+      </div>
 
       {/* Left Side in RTL: PWA Install, Search, Notifications, Profile Badge & Logout */}
       <div className="flex items-center gap-1.5 sm:gap-2.5">
@@ -163,14 +220,10 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#e7eeff] border border-[#bec8c8]/30 text-[#005253] text-xs sm:text-sm font-semibold shadow-xs">
             <span className="material-symbols-outlined text-base sm:text-lg">
-              {currentUser.role === 'manager'
-                ? 'admin_panel_settings'
-                : currentUser.role === 'teacher'
-                ? 'school'
-                : 'shield_person'}
+              {currentUser.role === 'manager' ? 'admin_panel_settings' : 'shield_person'}
             </span>
             <span className="hidden sm:inline">الدور:</span>
-            <span>{currentUser.title || (currentUser.role === 'manager' ? 'المدير العام' : currentUser.role === 'teacher' ? 'معلم الحلقة' : 'المشرف')}</span>
+            <span>{currentUser.title || (currentUser.role === 'manager' ? 'المدير العام' : 'المشرف')}</span>
           </div>
           <button
             onClick={logout}

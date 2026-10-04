@@ -24,16 +24,18 @@ export function getParentWhatsAppUrl(
     digits = digits.substring(2);
   }
 
-  // If Saudi number starting with 05 (10 digits), convert 05... to 9665...
-  if (digits.startsWith('0') && digits.length === 10) {
+  // If Egyptian local number starting with 01 (11 digits: 010, 011, 012, 015)
+  if (digits.startsWith('01') && digits.length === 11) {
+    digits = `20${digits.substring(1)}`;
+  } else if (digits.startsWith('05') && digits.length === 10) {
+    // If Saudi number starting with 05 (10 digits), convert 05... to 9665...
     digits = `966${digits.substring(1)}`;
   } else if (digits.startsWith('5') && digits.length === 9) {
     // If Saudi number without leading zero (5XXXXXXXX), prepend 966
     digits = `966${digits}`;
   }
 
-  // Fallback default message matching user requirement exactly:
-  // "السلام عليكم ورحمة الله، نتواصل معكم من أكاديمية المسلم الصغير بخصوص الطالب [اسم الطالب]"
+  // Fallback default message:
   const message =
     customMessage ||
     (studentName
@@ -41,6 +43,25 @@ export function getParentWhatsAppUrl(
       : 'السلام عليكم ورحمة الله، نتواصل معكم من أكاديمية المسلم الصغير.');
 
   return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+}
+
+/**
+ * Direct WhatsApp chat URL without prefilled text, for fast 1-click chatting
+ */
+export function getDirectWhatsAppChatUrl(phone: string): string {
+  if (!phone) return '';
+  let digits = phone.replace(/\D/g, '');
+  if (digits.startsWith('00')) {
+    digits = digits.substring(2);
+  }
+  if (digits.startsWith('01') && digits.length === 11) {
+    digits = `20${digits.substring(1)}`;
+  } else if (digits.startsWith('05') && digits.length === 10) {
+    digits = `966${digits.substring(1)}`;
+  } else if (digits.startsWith('5') && digits.length === 9) {
+    digits = `966${digits}`;
+  }
+  return `https://wa.me/${digits}`;
 }
 
 /**

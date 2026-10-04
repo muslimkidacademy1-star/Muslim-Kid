@@ -8,7 +8,6 @@ interface RecordObservationModalProps {
   teacher?: Teacher;
   student?: Student;
   sessionTime?: string;
-  meetingUrl?: string;
 }
 
 export const RecordObservationModal: React.FC<RecordObservationModalProps> = ({
@@ -17,7 +16,6 @@ export const RecordObservationModal: React.FC<RecordObservationModalProps> = ({
   teacher,
   student,
   sessionTime,
-  meetingUrl,
 }) => {
   const { currentUser, addActivityLog } = useApp();
 
@@ -42,7 +40,7 @@ export const RecordObservationModal: React.FC<RecordObservationModalProps> = ({
       circleName: teacher.circleName,
       studentId: student?.id,
       studentName: student?.name,
-      sessionTime: sessionTime || student?.sessionTime || 'بتوقيت مكة',
+      sessionTime: sessionTime || student?.sessionTime || '04:00 م (بتوقيت القاهرة)',
       rating,
       teachingMethodScore,
       studentEngagement,
@@ -115,18 +113,6 @@ export const RecordObservationModal: React.FC<RecordObservationModalProps> = ({
                 </span>
               </div>
             </div>
-
-            {meetingUrl && (
-              <a
-                href={meetingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-xl bg-[#0284c7] text-white font-bold text-xs hover:bg-[#0369a1] transition-colors flex items-center gap-1"
-              >
-                <span className="material-symbols-outlined text-sm">videocam</span>
-                <span>غرفة الزووم</span>
-              </a>
-            )}
           </div>
 
           {/* Star Rating */}

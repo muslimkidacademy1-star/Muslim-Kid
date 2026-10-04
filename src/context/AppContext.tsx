@@ -1064,26 +1064,50 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  // Add session log
+  // Add or update session log (يدعم التعديل دون مسح الحصص الأخرى)
   const addSessionLog = async (logData: Omit<SessionLog, 'id' | 'createdAt'>) => {
-    const newId = safeUuid(`sess-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`);
-    const newLog: SessionLog = {
-      ...logData,
-      id: newId,
-      createdAt: new Date().toISOString(),
-    };
+    let savedLog: SessionLog;
+    const existingIndex = sessionLogs.findIndex(
+      (l) => l.studentId === logData.studentId && l.sessionNumber === logData.sessionNumber
+    );
 
-    setSessionLogs((prev) => [newLog, ...prev]);
+    if (existingIndex >= 0) {
+      savedLog = {
+        ...sessionLogs[existingIndex],
+        ...logData,
+      };
+      setSessionLogs((prev) => {
+        const next = [...prev];
+        next[existingIndex] = savedLog;
+        return next;
+      });
+    } else {
+      const newId = safeUuid(`sess-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`);
+      savedLog = {
+        ...logData,
+        id: newId,
+        createdAt: new Date().toISOString(),
+      };
+      setSessionLogs((prev) => [savedLog, ...prev]);
+    }
 
-    // Update student's currentCycleSessionsCount (increments up to 8)
+    // Update student's currentCycleSessionsCount (يحسب إجمالي الحصص المسجلة بالدورة بدون تكرار)
     setStudents((prev) =>
       prev.map((s) => {
         if (s.id === logData.studentId) {
-          const nextCount = Math.min(8, logData.sessionNumber || (s.currentCycleSessionsCount || 0) + 1);
+          const maxPkg = s.packageSessionsCount || 8;
+          const currentNums = sessionLogs
+            .filter((l) => l.studentId === s.id)
+            .map((l) => l.sessionNumber);
+          if (!currentNums.includes(logData.sessionNumber)) {
+            currentNums.push(logData.sessionNumber);
+          }
+          const nextCount = Math.min(maxPkg, Math.max(currentNums.length, logData.sessionNumber));
+
           return {
             ...s,
             currentCycleSessionsCount: nextCount,
-            surahProgress: logData.newMemorization || s.surahProgress,
+            surahProgress: (logData.attendance === 'attended' && logData.newMemorization) ? logData.newMemorization : s.surahProgress,
             notes: logData.homework ? `الواجب: ${logData.homework}` : s.notes,
           };
         }
@@ -1093,17 +1117,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const student = students.find((s) => s.id === logData.studentId);
     const sessionNum = logData.sessionNumber;
+    const maxPkg = student?.packageSessionsCount || 8;
     addActivityLog(
-      `تسجيل حصة تسميع (${sessionNum}/8)`,
+      existingIndex >= 0 ? `تعديل حصة (${sessionNum}/${maxPkg})` : `تسجيل حصة (${sessionNum}/${maxPkg})`,
       student?.name,
       logData.studentId,
-      `تم توثيق الحصة رقم ${sessionNum} من 8: حفظ جديد (${logData.newMemorization}) ومراجعة (${logData.revision}) بواسطة ${currentUser.name}`
+      existingIndex >= 0
+        ? `تم تحديث بيانات الحصة رقم ${sessionNum} من ${maxPkg}: حفظ (${logData.newMemorization || 'بدون'}) ومراجعة (${logData.revision || 'بدون'}) بواسطة ${currentUser.name}`
+        : `تم توثيق الحصة رقم ${sessionNum} من ${maxPkg}: حفظ جديد (${logData.newMemorization || 'بدون'}) ومراجعة (${logData.revision || 'بدون'}) بواسطة ${currentUser.name}`
     );
 
     // Sync session log to Supabase
     try {
-      const sessRow = sessionLogToSupabaseRow(newLog);
-      await supabase.from('session_logs').insert(sessRow);
+      const sessRow = sessionLogToSupabaseRow(savedLog);
+      await supabase.from('session_logs').upsert(sessRow);
     } catch (e) {
       console.warn('Supabase session log sync error:', e);
     }
@@ -1116,32 +1143,41 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       .sort((a, b) => a.sessionNumber - b.sessionNumber);
   };
 
-  // Get aggregated 8 sessions summary for auto-populating reports
+  // Get aggregated cycle summary for auto-populating reports
   const getAggregatedCycleSummary = (studentId: string) => {
+    const student = students.find((s) => s.id === studentId);
+    const maxPkg = student?.packageSessionsCount || 8;
+
     const studentLogs = sessionLogs
       .filter((l) => l.studentId === studentId)
       .sort((a, b) => a.sessionNumber - b.sessionNumber);
 
     const memorizationLines = studentLogs
+      .filter((l) => l.attendance === 'attended')
       .map((l) => `حصة ${l.sessionNumber}: ${l.newMemorization}`)
       .filter(Boolean);
     const revisionLines = studentLogs
+      .filter((l) => l.attendance === 'attended')
       .map((l) => `حصة ${l.sessionNumber}: ${l.revision}`)
       .filter(Boolean);
     const notesLines = studentLogs
-      .map((l) => (l.notes || l.homework ? `حصة ${l.sessionNumber}: ${[l.notes, l.homework ? 'الواجب: ' + l.homework : ''].filter(Boolean).join(' - ')}` : ''))
+      .map((l) => {
+        if (l.attendance === 'absent') return `حصة ${l.sessionNumber}: غائب بدون عذر`;
+        if (l.attendance === 'excused') return `حصة ${l.sessionNumber}: غائب بعذر (${l.notes || 'اعتذار مسبق'})`;
+        return (l.notes || l.homework ? `حصة ${l.sessionNumber}: ${[l.notes, l.homework ? 'الواجب: ' + l.homework : ''].filter(Boolean).join(' - ')}` : '');
+      })
       .filter(Boolean);
 
     return {
       memorizationDetails: memorizationLines.length > 0
         ? memorizationLines.join(' | ')
-        : 'إتمام دورة الـ 8 حصص بحفظ وتسميع متقن',
+        : `إتمام دورة الـ ${maxPkg} حصص بحفظ وتسميع متقن`,
       revisionDetails: revisionLines.length > 0
         ? revisionLines.join(' | ')
         : 'مراجعة وتثبيت شامل لكافة المقاطع السابقة',
       teacherNotes: notesLines.length > 0
         ? notesLines.join(' | ')
-        : 'أتم الطالب دورة الـ 8 حصص بجد واجتهاد، والتزام عالي بالحضور.',
+        : `أتم الطالب دورة الـ ${maxPkg} حصص بجد واجتهاد، والتزام عالي بالحضور.`,
       studentEncouragement: 'بارك الله فيك يا بطل القرآن الصغير ووفقك ورفع قدرك بالقرآن الكريم!',
       completedSessionsCount: studentLogs.length,
     };
@@ -1389,14 +1425,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const totalSubscriptions = useMemo(() => {
     return students
       .filter((s) => s.status === 'active')
-      .reduce((sum, s) => sum + (s.subscriptionFee || 0), 0);
+      .reduce((sum, s) => sum + (Number(s.subscriptionFee) || 0), 0);
   }, [students]);
 
   const totalTeacherCosts = useMemo(() => {
+    const studentTeacherCosts = students
+      .filter((s) => s.status === 'active')
+      .reduce((sum, s) => sum + (Number(s.teacherCost) || 0), 0);
+
+    if (studentTeacherCosts > 0) {
+      return studentTeacherCosts;
+    }
+
     return teachers
       .filter((t) => t.status === 'active')
-      .reduce((sum, t) => sum + (t.monthlySalary || 0), 0);
-  }, [teachers]);
+      .reduce((sum, t) => sum + (Number(t.monthlySalary) || 0), 0);
+  }, [students, teachers]);
 
   const netProfit = useMemo(() => {
     return totalSubscriptions - totalTeacherCosts;
