@@ -33,6 +33,8 @@ export const Header: React.FC<HeaderProps> = ({
     logout,
     isSuperAdmin,
     previewRole,
+    setPreviewRole,
+    fetchFromSupabase,
   } = useApp();
 
   const currentRole: UserRole = currentUser.role;
@@ -65,7 +67,25 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  // Dedicated Minimalist Clean Header for Teacher Portal (Unified Slim Navbar)
+  // State for Teacher Account Menu Popover
+  const [isTeacherAccountOpen, setIsTeacherAccountOpen] = useState(false);
+  const teacherAccountRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (teacherAccountRef.current && !teacherAccountRef.current.contains(event.target as Node)) {
+        setIsTeacherAccountOpen(false);
+      }
+    };
+    if (isTeacherAccountOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isTeacherAccountOpen]);
+
+  // Dedicated Minimalist Clean Header for Teacher Portal (Mobile First)
   if (currentUser.role === 'teacher') {
     const teacherObj = teachers.find(
       (t) => t.id === currentUser.teacherId || t.name === currentUser.name || t.id === currentUser.id
@@ -76,51 +96,112 @@ export const Header: React.FC<HeaderProps> = ({
       <header
         className={`fixed ${
           isSuperAdmin ? 'top-11' : 'top-0'
-        } right-0 lg:right-72 left-0 h-14 bg-white/95 backdrop-blur-md border-b border-gray-100/90 z-40 flex items-center justify-between px-4 sm:px-6 transition-all duration-200 shadow-2xs`}
+        } right-0 lg:right-72 left-0 h-14 bg-white/95 backdrop-blur-md border-b border-gray-100/90 z-40 flex items-center justify-between px-3 sm:px-6 transition-all duration-200 shadow-2xs`}
+        dir="rtl"
       >
-        {/* Right Side: Small Academy Logo & Academy Name */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onToggleSidebar}
-            className="lg:hidden w-8 h-8 rounded-lg bg-gray-50 border border-gray-200/70 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors"
-            title="القائمة الجانبية"
-          >
-            <span className="material-symbols-outlined text-lg">menu</span>
-          </button>
-
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-[#1A7B88] text-white flex items-center justify-center shadow-xs">
-              <span className="material-symbols-outlined text-base">menu_book</span>
-            </div>
-            <span className="font-bold text-sm sm:text-base text-[#125862] tracking-tight">
-              أكاديمية المسلم الصغير
-            </span>
-          </div>
+        {/* Right Side: Logo & Academy Name */}
+        <div className="flex items-center gap-2.5">
+          <img
+            src="/logo.jpg"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = '/icon.svg';
+            }}
+            alt="شعار الأكاديمية"
+            className="w-8 h-8 rounded-lg aspect-square object-contain shadow-2xs"
+          />
+          <span className="font-bold text-sm sm:text-base text-[#125862] tracking-tight">
+            أكاديمية المسلم الصغير
+          </span>
         </div>
 
-        {/* Left Side: Teacher Name & Circle next to Avatar (الشيخ محمد أبو شتا • حلقة النور) */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-[#EAF5F7] text-[#125862] font-bold flex items-center justify-center text-xs border border-[#1A7B88]/25 shadow-2xs shrink-0">
+        {/* Left Side: Account Button with Menu */}
+        <div className="relative" ref={teacherAccountRef}>
+          <button
+            onClick={() => setIsTeacherAccountOpen(!isTeacherAccountOpen)}
+            className="min-h-[44px] min-w-[44px] px-2.5 py-1.5 rounded-xl bg-gray-50 hover:bg-[#EAF5F7] border border-gray-200/80 text-[#125862] transition-colors flex items-center gap-2 cursor-pointer shadow-2xs active:scale-98"
+            aria-label="حساب المعلم"
+            aria-expanded={isTeacherAccountOpen}
+          >
+            <div className="w-8 h-8 rounded-full bg-[#1A7B88] text-white font-bold flex items-center justify-center text-xs shadow-2xs shrink-0">
               {currentUser.initials}
             </div>
-            <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-gray-900">
-              <span>{currentUser.name}</span>
-              <span className="text-gray-300 font-normal">•</span>
-              <span className="text-[#1A7B88] font-semibold">{circleName || 'حلقة النور'}</span>
-            </div>
-          </div>
-
-          <div className="h-4 w-px bg-gray-200" />
-
-          <button
-            onClick={logout}
-            className="px-2 sm:px-2.5 py-1.5 rounded-lg text-gray-500 hover:text-rose-600 hover:bg-rose-50 transition-colors flex items-center gap-1 cursor-pointer text-xs font-medium"
-            title="تسجيل الخروج"
-          >
-            <span className="material-symbols-outlined text-base">logout</span>
-            <span className="hidden sm:inline">خروج</span>
+            <span className="hidden sm:inline-block font-bold text-xs text-gray-800 max-w-[110px] truncate">
+              {currentUser.name.split(' ')[0]}
+            </span>
+            <span className="material-symbols-outlined text-gray-500 text-lg">
+              {isTeacherAccountOpen ? 'expand_less' : 'expand_more'}
+            </span>
           </button>
+
+          {/* Account Popover Menu */}
+          {isTeacherAccountOpen && (
+            <div className="absolute left-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-gray-100 p-3 z-50 flex flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-150 text-right">
+              {/* Teacher Info */}
+              <div className="p-3 rounded-xl bg-[#F4F9FA] border border-[#1A7B88]/15 flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#1A7B88] text-white font-bold flex items-center justify-center text-sm shadow-xs shrink-0">
+                  {currentUser.initials}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="text-[11px] text-gray-500 font-medium block">أهلًا بك</span>
+                  <h4 className="font-bold text-sm text-gray-900 truncate">{currentUser.name}</h4>
+                  <span className="inline-block mt-0.5 text-xs text-[#1A7B88] font-semibold truncate">
+                    {circleName}
+                  </span>
+                </div>
+              </div>
+
+              {/* Role Preview Banner for Super Admin */}
+              {isSuperAdmin && previewRole === 'teacher' && (
+                <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex flex-col gap-1.5">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <span className="material-symbols-outlined text-sm text-amber-600">visibility</span>
+                    <span>وضع معاينة بوابة المعلم</span>
+                  </div>
+                  <p className="text-[11px] text-amber-700 leading-snug">
+                    أنت تتصفح حالياً بصلاحية المعلم للتجربة.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setIsTeacherAccountOpen(false);
+                      setPreviewRole(null);
+                    }}
+                    className="min-h-[44px] mt-1 w-full py-2 px-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1"
+                  >
+                    <span>العودة للوحة الإدارة العامة</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Refresh Data */}
+              <button
+                onClick={() => {
+                  fetchFromSupabase();
+                  setIsTeacherAccountOpen(false);
+                }}
+                className="min-h-[44px] w-full px-3 py-2 rounded-xl text-gray-700 hover:bg-gray-50 hover:text-[#125862] text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-base text-gray-400">sync</span>
+                <span>تحديث البيانات من السيرفر</span>
+              </button>
+
+              {/* Logout Button */}
+              <div className="pt-1 border-t border-gray-100">
+                <button
+                  onClick={() => {
+                    setIsTeacherAccountOpen(false);
+                    logout();
+                  }}
+                  className="min-h-[44px] w-full px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center justify-between transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-base">logout</span>
+                    <span>تسجيل الخروج</span>
+                  </div>
+                  <span className="text-[10px] text-rose-400 font-normal">إنهاء الجلسة</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </header>
     );
