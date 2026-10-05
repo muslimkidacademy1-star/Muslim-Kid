@@ -7,6 +7,7 @@ import { LogSessionModal } from '../modals/LogSessionModal';
 import { generateStudentReportPdf } from '../../utils/pdfGenerator';
 import { getParentWhatsAppUrl, formatInternationalPhone, formatCairoTime } from '../../utils/whatsapp';
 import { getTodayArabicWeekday } from '../../mock/initialData';
+import { HorizontalWeeklyScheduleStrip } from './HorizontalWeeklyScheduleStrip';
 import { TeacherBottomNav, TeacherTab } from './TeacherBottomNav';
 
 interface StudentCardProps {
@@ -173,6 +174,7 @@ export const TeacherView: React.FC = () => {
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<TeacherTab>('today');
+  const [selectedDayFilter, setSelectedDayFilter] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudentForReport, setSelectedStudentForReport] = useState<Student | null>(null);
   const [selectedStudentForLog, setSelectedStudentForLog] = useState<Student | null>(null);
@@ -217,6 +219,21 @@ export const TeacherView: React.FC = () => {
     return true;
   });
 
+  // Students for currently selected day from the horizontal strip
+  const dayFilteredStudents = selectedDayFilter
+    ? teacherStudents.filter(
+        (s) => s.status !== 'vacation' && s.scheduleDays?.includes(selectedDayFilter)
+      )
+    : [];
+
+  const handleSelectDay = (day: string) => {
+    if (selectedDayFilter === day) {
+      setSelectedDayFilter(null);
+    } else {
+      setSelectedDayFilter(day);
+    }
+  };
+
   const handleOpenSubmitReport = (student: Student) => {
     setSelectedStudentForReport(student);
     setIsReportModalOpen(true);
@@ -241,61 +258,94 @@ export const TeacherView: React.FC = () => {
   };
 
   return (
-    <div className="w-full flex flex-col gap-4 sm:gap-5 pb-24 sm:pb-8" dir="rtl">
-      {/* 1. Desktop & Mobile Compact Tabs (No vast gap, neatly clustered side-by-side) */}
-      <div className="flex items-center justify-start">
-        <div className="inline-flex items-center gap-1.5 sm:gap-2 bg-slate-100 p-1.5 rounded-2xl border border-gray-200/80 shadow-2xs">
-          {/* Tab 1: حصص اليوم */}
-          <button
-            onClick={() => setActiveTab('today')}
-            className={`px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-2 text-xs sm:text-sm font-bold ${
-              activeTab === 'today'
-                ? 'bg-white text-[#125862] shadow-xs'
-                : 'text-gray-600 hover:text-[#125862]'
+    <div className="w-full max-w-5xl mx-auto flex flex-col gap-3.5 sm:gap-4 pb-24 sm:pb-8" dir="rtl">
+      {/* 1. Balanced Wide 2-Tab Navigation Bar (50% / 50% split) */}
+      <div
+        className="w-full grid grid-cols-2 p-1.5 bg-[#EAF5F7] rounded-2xl gap-1.5 border border-[#1A7B88]/20 shadow-xs text-xs sm:text-sm font-bold items-center"
+        style={{ height: '59px' }}
+      >
+        {/* Tab 1: حصص اليوم (50% width) */}
+        <button
+          onClick={() => {
+            setActiveTab('today');
+            setSelectedDayFilter(null);
+          }}
+          className={`w-full h-full py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            activeTab === 'today' && !selectedDayFilter
+              ? 'bg-white text-[#125862] shadow-xs'
+              : 'text-gray-600 hover:text-[#125862]'
+          }`}
+        >
+          <span className="text-sm">📌</span>
+          <span className="font-bold truncate">حصص اليوم</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold shrink-0 ${
+              activeTab === 'today' && !selectedDayFilter
+                ? 'bg-[#1A7B88] text-white'
+                : 'bg-white/80 text-gray-700'
             }`}
           >
-            <span>📌</span>
-            <span>حصص اليوم</span>
-            <span
-              className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
-                activeTab === 'today'
-                  ? 'bg-[#1A7B88] text-white'
-                  : 'bg-white/80 text-gray-700'
-              }`}
-            >
-              {todayStudents.length}
-            </span>
-          </button>
+            {todayStudents.length}
+          </span>
+        </button>
 
-          {/* Tab 2: قائمة الطلاب */}
-          <button
-            onClick={() => setActiveTab('students')}
-            className={`px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-2 text-xs sm:text-sm font-bold ${
-              activeTab === 'students'
-                ? 'bg-white text-[#125862] shadow-xs'
-                : 'text-gray-600 hover:text-[#125862]'
+        {/* Tab 2: قائمة الطلاب (50% width) */}
+        <button
+          onClick={() => {
+            setActiveTab('students');
+            setSelectedDayFilter(null);
+          }}
+          className={`w-full h-full py-2 px-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            activeTab === 'students' && !selectedDayFilter
+              ? 'bg-white text-[#125862] shadow-xs'
+              : 'text-gray-600 hover:text-[#125862]'
+          }`}
+        >
+          <span className="text-sm">👥</span>
+          <span className="font-bold truncate">قائمة الطلاب</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold shrink-0 ${
+              activeTab === 'students' && !selectedDayFilter
+                ? 'bg-[#1A7B88] text-white'
+                : 'bg-white/80 text-gray-700'
             }`}
           >
-            <span>👥</span>
-            <span>قائمة الطلاب</span>
-            <span
-              className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${
-                activeTab === 'students'
-                  ? 'bg-[#1A7B88] text-white'
-                  : 'bg-white/80 text-gray-700'
-              }`}
-            >
-              {teacherStudents.length}
-            </span>
-          </button>
-        </div>
+            {teacherStudents.length}
+          </span>
+        </button>
       </div>
 
-      {/* 2. Full-Width Balanced Search Row & Add Student Button (Matching cards grid width) */}
-      <div className="flex items-center gap-2.5 sm:gap-3 w-full">
-        {/* Search Input spanning broad available width */}
+      {/* 2. Horizontal Scrollable Weekly Schedule Strip (أسفل تبويبات حصص اليوم وقائمة الطلاب) */}
+      <HorizontalWeeklyScheduleStrip
+        students={teacherStudents}
+        selectedDay={selectedDayFilter}
+        onSelectDay={handleSelectDay}
+      />
+
+      {/* Active Day Filter Notification Banner */}
+      {selectedDayFilter && (
+        <div className="flex items-center justify-between p-3 rounded-2xl bg-[#EAF5F7] border border-[#1A7B88]/30 animate-in fade-in duration-150">
+          <div className="flex items-center gap-2 text-xs text-[#125862] font-bold">
+            <span className="material-symbols-outlined text-base text-[#1A7B88]">filter_alt</span>
+            <span>
+              عرض الحصص المجدولة ليوم <strong>({selectedDayFilter})</strong> • {dayFilteredStudents.length} طلاب
+            </span>
+          </div>
+
+          <button
+            onClick={() => setSelectedDayFilter(null)}
+            className="text-xs text-[#125862] hover:text-[#1A7B88] font-bold px-2.5 py-1 rounded-xl bg-white border border-[#1A7B88]/20 transition-colors cursor-pointer"
+          >
+            إلغاء التصفية ✕
+          </button>
+        </div>
+      )}
+
+      {/* 3. Directly Below: Single Compact Row (Search Box + Small Elegant [+ طالب جديد] Button) */}
+      <div className="flex items-center gap-2 sm:gap-3 w-full">
+        {/* Search Input spanning remaining space */}
         <div className="relative flex-1">
-          <span className="material-symbols-outlined absolute right-3.5 top-3 text-gray-400 text-lg pointer-events-none">
+          <span className="material-symbols-outlined absolute right-3 top-2.5 text-gray-400 text-lg pointer-events-none">
             search
           </span>
           <input
@@ -303,29 +353,29 @@ export const TeacherView: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="بحث باسم الطالب أو رقم الهاتف..."
-            className="w-full h-11 pr-10 pl-8 rounded-2xl bg-white text-xs sm:text-sm text-gray-900 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/30 shadow-2xs placeholder:text-gray-400"
+            className="w-full h-10 pr-9.5 pl-8 rounded-xl bg-white text-xs sm:text-sm text-gray-900 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/30 shadow-2xs placeholder:text-gray-400"
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
-              className="absolute left-3 top-3 text-gray-400 hover:text-gray-600 text-xs cursor-pointer p-0.5"
+              className="absolute left-2.5 top-2.5 text-gray-400 hover:text-gray-600 text-xs cursor-pointer p-0.5"
             >
               ✕
             </button>
           )}
         </div>
 
-        {/* Add Student Button: [+ إضافة طالب جديد] */}
+        {/* Small & Elegant Add Student Button */}
         <button
           onClick={() => setIsAddStudentModalOpen(true)}
-          className="h-11 px-4 sm:px-6 rounded-2xl bg-[#1A7B88] hover:bg-[#125862] text-white font-bold text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 active:scale-98"
+          className="h-10 px-3.5 sm:px-5 rounded-xl bg-[#1A7B88] hover:bg-[#125862] text-white font-bold text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 active:scale-98"
         >
-          <span className="material-symbols-outlined text-lg">person_add</span>
-          <span className="whitespace-nowrap">+ إضافة طالب جديد</span>
+          <span className="material-symbols-outlined text-base">person_add</span>
+          <span className="whitespace-nowrap">+ طالب جديد</span>
         </button>
       </div>
 
-      {/* 3. Empty State when Teacher has no students */}
+      {/* 4. Empty State when Teacher has no students */}
       {teacherStudents.length === 0 && !searchTerm && (
         <div className="bg-white rounded-3xl p-8 sm:p-12 border border-gray-100 shadow-xs text-center flex flex-col items-center justify-center gap-3 w-full">
           <div className="w-16 h-16 rounded-2xl bg-[#EAF5F7] text-[#1A7B88] flex items-center justify-center shadow-xs">
@@ -339,7 +389,7 @@ export const TeacherView: React.FC = () => {
           </p>
           <button
             onClick={() => setIsAddStudentModalOpen(true)}
-            className="mt-2 px-5 py-2.5 rounded-xl bg-[#1A7B88] hover:bg-[#125862] text-white font-bold text-xs sm:text-sm shadow-xs transition-all cursor-pointer flex items-center gap-2"
+            className="mt-2 px-5 py-2.5 rounded-xl bg-[#1A7B88] hover:bg-[#125862] text-white font-bold text-xs sm:text-sm shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
           >
             <span className="material-symbols-outlined text-base">person_add</span>
             <span>+ إضافة طالب جديد</span>
@@ -347,8 +397,45 @@ export const TeacherView: React.FC = () => {
         </div>
       )}
 
-      {/* 4. Tab 1: حصص اليوم (Today's Sessions Grid) */}
-      {activeTab === 'today' && teacherStudents.length > 0 && (
+      {/* 5. Main Cards Display Area */}
+      {/* Case A: Specific day selected from horizontal strip */}
+      {selectedDayFilter && (
+        <div className="w-full">
+          {dayFilteredStudents.length === 0 ? (
+            <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-xs text-center flex flex-col items-center justify-center gap-2 w-full">
+              <span className="material-symbols-outlined text-4xl text-gray-300">
+                event_busy
+              </span>
+              <p className="text-sm font-bold text-gray-800">
+                لا توجد حصص مجدولة في يوم ({selectedDayFilter})
+              </p>
+              <button
+                onClick={() => setSelectedDayFilter(null)}
+                className="mt-2 px-4 py-2 rounded-xl bg-[#EAF5F7] text-[#125862] hover:bg-[#d9eff3] text-xs font-bold transition-all cursor-pointer border border-[#1A7B88]/20"
+              >
+                العودة لكافة الحصص
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4 w-full">
+              {dayFilteredStudents.map((student) => (
+                <StudentCard
+                  key={`day-${selectedDayFilter}-${student.id}`}
+                  student={student}
+                  onLogSession={handleOpenLogSession}
+                  onSubmitReport={handleOpenSubmitReport}
+                  onDownloadPdf={handleDownloadPdf}
+                  latestReport={getStudentLatestReport(student.id)}
+                  displayDay={selectedDayFilter}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Case B: Tab 1: حصص اليوم (when no custom day filter is selected) */}
+      {!selectedDayFilter && activeTab === 'today' && teacherStudents.length > 0 && (
         <div className="w-full">
           {todayStudents.length === 0 ? (
             <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-xs text-center flex flex-col items-center justify-center gap-2 w-full">
@@ -359,7 +446,7 @@ export const TeacherView: React.FC = () => {
                 لا توجد حصص مجدولة لهذا اليوم ({todayWeekday})
               </p>
               <p className="text-xs text-gray-500">
-                يمكنك الانتقال لتبويب <strong>«قائمة الطلاب»</strong> لتسجيل حضور أي طالب خارج الجدول اليومي
+                يمكنك النقر على أي يوم من الشريط الأسبوعي أعلاه أو الانتقال لتبويب <strong>«قائمة الطلاب»</strong>
               </p>
               <button
                 onClick={() => setActiveTab('students')}
@@ -369,7 +456,7 @@ export const TeacherView: React.FC = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4 w-full">
               {todayStudents.map((student) => (
                 <StudentCard
                   key={`today-${student.id}`}
@@ -386,9 +473,9 @@ export const TeacherView: React.FC = () => {
         </div>
       )}
 
-      {/* 5. Tab 2: قائمة الطلاب (All Students Grid) */}
-      {activeTab === 'students' && teacherStudents.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+      {/* Case C: Tab 2: قائمة الطلاب (All Students) */}
+      {!selectedDayFilter && activeTab === 'students' && teacherStudents.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4 w-full">
           {teacherStudents.map((student) => (
             <StudentCard
               key={`all-${student.id}`}
@@ -403,10 +490,13 @@ export const TeacherView: React.FC = () => {
         </div>
       )}
 
-      {/* Mobile Bottom Navigation Bar (Fixed for phones only) */}
+      {/* Mobile Bottom Navigation Bar (Fixed for phones) */}
       <TeacherBottomNav
         activeTab={activeTab}
-        onChangeTab={(tab) => setActiveTab(tab)}
+        onChangeTab={(tab) => {
+          setActiveTab(tab);
+          setSelectedDayFilter(null);
+        }}
         todayCount={todayStudents.length}
         studentsCount={teacherStudents.length}
       />

@@ -162,11 +162,7 @@ function AuthenticatedApp() {
       {/* Main Page Content Body */}
       <main
         className={`flex-1 ${
-          currentUser.role === 'teacher'
-            ? 'pt-16 lg:pt-6'
-            : isSuperAdmin
-            ? 'pt-28 sm:pt-32'
-            : 'pt-20'
+          isSuperAdmin ? 'pt-28 sm:pt-32' : 'pt-20'
         } pb-12 px-4 sm:px-6 lg:px-8 lg:mr-72 transition-all duration-300`}
       >
         <div className="max-w-7xl mx-auto">{renderMainContent()}</div>
