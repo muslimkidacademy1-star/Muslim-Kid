@@ -65,7 +65,7 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  // Dedicated Minimalist Clean Header for Teacher Portal (Unified Slim Navbar)
+  // Dedicated Minimalist Clean Header for Teacher Portal (Mobile Only: lg:hidden)
   if (currentUser.role === 'teacher') {
     const teacherObj = teachers.find(
       (t) => t.id === currentUser.teacherId || t.name === currentUser.name || t.id === currentUser.id
@@ -74,15 +74,13 @@ export const Header: React.FC<HeaderProps> = ({
 
     return (
       <header
-        className={`fixed ${
-          isSuperAdmin ? 'top-11' : 'top-0'
-        } right-0 lg:right-72 left-0 h-14 bg-white/95 backdrop-blur-md border-b border-gray-100/90 z-40 flex items-center justify-between px-4 sm:px-6 transition-all duration-200 shadow-2xs`}
+        className="fixed top-0 right-0 left-0 h-14 bg-white/95 backdrop-blur-md border-b border-gray-100/90 z-40 flex items-center justify-between px-4 sm:px-6 lg:hidden shadow-2xs"
       >
         {/* Right Side: Small Academy Logo & Academy Name */}
         <div className="flex items-center gap-3">
           <button
             onClick={onToggleSidebar}
-            className="lg:hidden w-8 h-8 rounded-lg bg-gray-50 border border-gray-200/70 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors"
+            className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-200/70 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors"
             title="القائمة الجانبية"
           >
             <span className="material-symbols-outlined text-lg">menu</span>
