@@ -46,6 +46,7 @@ export function studentToSupabaseRow(s: Student, teacherUuidMap?: Record<string,
     session_time: s.sessionTime || null,
     zoom_link: s.meetingUrl || null,
     notes: s.notes || s.surahProgress || '',
+    last_observation_date: s.lastObservationDate || null,
   };
 }
 
@@ -83,6 +84,9 @@ export function supabaseRowToStudent(row: any): Student {
     sessionTime: row.session_time || '04:30 م',
     meetingUrl: row.zoom_link || '',
     currentCycleSessionsCount: 0,
+    lastObservationDate: row.last_observation_date || row.lastObservationDate || undefined,
+    lastObservationNote: row.last_observation_note || row.lastObservationNote || undefined,
+    lastObservationRating: row.last_observation_rating ? Number(row.last_observation_rating) : undefined,
   };
 }
 

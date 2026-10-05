@@ -126,6 +126,54 @@ export const Header: React.FC<HeaderProps> = ({
     );
   }
 
+  // Dedicated Minimalist Clean Header for Sub Supervisor Portal (Mobile Only: lg:hidden)
+  if (currentUser.role === 'sub_supervisor') {
+    return (
+      <header
+        className={`fixed ${
+          isSuperAdmin ? 'top-11' : 'top-0'
+        } right-0 left-0 h-14 bg-white/95 backdrop-blur-md border-b border-gray-100/90 z-40 flex items-center justify-between px-4 sm:px-6 lg:hidden shadow-2xs`}
+      >
+        {/* Right Side: Hamburger + Academy Logo */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onToggleSidebar}
+            className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-200/70 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors"
+            title="القائمة الجانبية"
+          >
+            <span className="material-symbols-outlined text-lg">menu</span>
+          </button>
+
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-[#1A7B88] text-white flex items-center justify-center shadow-xs">
+              <span className="material-symbols-outlined text-base">menu_book</span>
+            </div>
+            <span className="font-bold text-sm text-[#125862] tracking-tight">
+              أكاديمية المسلم الصغير
+            </span>
+          </div>
+        </div>
+
+        {/* Left Side: Supervisor Name & Logout */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-gray-800">
+            {currentUser.name}
+          </span>
+          <span className="text-[10px] font-bold text-[#1A7B88] bg-[#EAF5F7] px-2 py-0.5 rounded-full border border-[#1A7B88]/20">
+            {currentUser.title || 'مشرف الحلقات'}
+          </span>
+          <button
+            onClick={logout}
+            className="p-1 rounded-lg text-gray-400 hover:text-rose-600 transition-colors cursor-pointer"
+            title="تسجيل الخروج"
+          >
+            <span className="material-symbols-outlined text-lg">logout</span>
+          </button>
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header
       className={`fixed ${

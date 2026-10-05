@@ -60,6 +60,9 @@ export interface Student {
   meetingUrl?: string; // رابط غرفة الزووم أو التسميع
   packageSessionsCount?: number; // إجمالي حصص الباقة الشهرية (8 / 12 / 16 / 24 حصة، الافتراضي 8)
   currentCycleSessionsCount?: number; // عداد الحصص المنجزة في دورة الحصص الحالية
+  lastObservationDate?: string; // تاريخ آخر زيارة مراقبة ميدانية للمشرف (YYYY-MM-DD)
+  lastObservationNote?: string; // آخر ملاحظة توجيهية سجلها المشرف
+  lastObservationRating?: number; // تقييم آخر زيارة (من 1 إلى 5)
 }
 
 export interface SessionLog {

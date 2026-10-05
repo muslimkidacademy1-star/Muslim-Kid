@@ -135,12 +135,15 @@ export function getReportWhatsAppUrl(
 
 /**
  * Specialized WhatsApp message URL for reminding teachers to submit reports:
- * "السلام عليكم شيخنا الفاضل، نرجو التكرم بتسليم تقرير إنجاز 8 حصص للطالب [اسم الطالب] في أقرب وقت."
+ * "السلام عليكم ورحمة الله وبركاته، أستاذنا الفاضل [اسم المعلم]، تذكير لطيف بخصوص حلقة الطالب [اسم الطالب]، نرجو التكرم برفع تقرير الدورة. بارك الله في جهودكم."
  */
 export function getTeacherReminderWhatsAppUrl(
   teacherPhone: string,
-  studentName: string
+  studentName: string,
+  teacherName?: string
 ): string {
-  const customMessage = `السلام عليكم شيخنا الفاضل، نرجو التكرم بتسليم تقرير إنجاز 8 حصص للطالب ${studentName} في أقرب وقت.`;
+  const customMessage = teacherName
+    ? `السلام عليكم ورحمة الله وبركاته، أستاذنا الفاضل ${teacherName}، تذكير لطيف بخصوص حلقة الطالب ${studentName}، نرجو التكرم برفع تقرير الدورة. بارك الله في جهودكم.`
+    : `السلام عليكم ورحمة الله وبركاته، شيخنا الفاضل، تذكير لطيف بخصوص حلقة الطالب ${studentName}، نرجو التكرم برفع تقرير الدورة. بارك الله في جهودكم.`;
   return getParentWhatsAppUrl(teacherPhone, studentName, customMessage);
 }
