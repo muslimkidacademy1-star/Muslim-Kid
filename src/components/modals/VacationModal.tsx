@@ -94,17 +94,17 @@ export const VacationModal: React.FC<VacationModalProps> = ({
         </div>
 
         {/* Current status pill */}
-        <div className="mx-6 mt-4 p-3.5 bg-[#f0f3ff] rounded-xl flex items-center justify-between">
+        <div className="mx-6 mt-4 p-3.5 bg-[#F5F5F7] rounded-xl flex items-center justify-between border border-gray-200/70">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#005253] text-white font-bold flex items-center justify-center text-sm">
+            <div className="w-9 h-9 rounded-full bg-[#1A7B88] text-white font-bold flex items-center justify-center text-sm shadow-2xs">
               {student.initials}
             </div>
             <div>
-              <span className="font-bold text-sm text-[#111c2d] block">{student.name}</span>
-              <span className="text-xs text-[#6f7979]">الحالة الحالية: </span>
+              <span className="font-bold text-sm text-[#1D1D1F] block">{student.name}</span>
+              <span className="text-xs text-gray-500">الحالة الحالية: </span>
               <span
                 className={`text-xs font-bold ${
-                  student.status === 'vacation' ? 'text-[#7d5800]' : 'text-[#005253]'
+                  student.status === 'vacation' ? 'text-amber-700' : 'text-[#125862]'
                 }`}
               >
                 {student.status === 'vacation' ? 'في إجازة رسمية' : 'نشط بالحلقات'}
@@ -116,7 +116,7 @@ export const VacationModal: React.FC<VacationModalProps> = ({
             <button
               type="button"
               onClick={handleEndVacation}
-              className="px-3 py-1.5 rounded-lg bg-[#005253] text-white text-xs font-bold hover:bg-[#186b6d] flex items-center gap-1 shadow-xs"
+              className="px-3 py-1.5 rounded-lg bg-[#1A7B88] text-white text-xs font-bold hover:bg-[#125862] flex items-center gap-1 shadow-xs cursor-pointer min-h-[36px]"
             >
               <span className="material-symbols-outlined text-sm">play_arrow</span>
               <span>إنهاء الإجازة الآن</span>
@@ -127,13 +127,13 @@ export const VacationModal: React.FC<VacationModalProps> = ({
         {/* Form */}
         <form onSubmit={handleActivateVacation} className="p-6 flex flex-col gap-4 text-sm">
           <div>
-            <label className="block text-xs font-bold text-[#111c2d] mb-1.5">
-              نوع أو سبب الإجازة <span className="text-[#ba1a1a]">*</span>
+            <label className="block text-xs font-bold text-[#1D1D1F] mb-1.5">
+              نوع أو سبب الإجازة <span className="text-rose-600">*</span>
             </label>
             <select
               value={vacationType}
               onChange={(e) => setVacationType(e.target.value)}
-              className="w-full h-10 px-3 rounded-xl bg-[#f0f3ff] text-[#111c2d] focus:outline-none cursor-pointer"
+              className="w-full h-11 px-3.5 rounded-xl bg-[#F5F5F7] text-[#1D1D1F] border border-gray-200/80 focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/20 focus:border-[#1A7B88] cursor-pointer"
             >
               <option value="إجازة سفر عائلية معتمدة">إجازة سفر عائلية معتمدة</option>
               <option value="عذر طبي معتمد">عذر طبي معتمد</option>
@@ -144,54 +144,54 @@ export const VacationModal: React.FC<VacationModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-[#111c2d] mb-1.5">
-                تاريخ بداية الإجازة <span className="text-[#ba1a1a]">*</span>
+              <label className="block text-xs font-bold text-[#1D1D1F] mb-1.5">
+                تاريخ بداية الإجازة <span className="text-rose-600">*</span>
               </label>
               <input
                 type="date"
                 required
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl bg-[#f0f3ff] text-[#111c2d] focus:outline-none"
+                className="w-full h-11 px-3.5 rounded-xl bg-[#F5F5F7] text-[#1D1D1F] border border-gray-200/80 focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/20 focus:border-[#1A7B88]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#111c2d] mb-1.5">
-                تاريخ نهاية الإجازة (العودة) <span className="text-[#ba1a1a]">*</span>
+              <label className="block text-xs font-bold text-[#1D1D1F] mb-1.5">
+                تاريخ نهاية الإجازة (العودة) <span className="text-rose-600">*</span>
               </label>
               <input
                 type="date"
                 required
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full h-10 px-3 rounded-xl bg-[#f0f3ff] text-[#111c2d] focus:outline-none"
+                className="w-full h-11 px-3.5 rounded-xl bg-[#F5F5F7] text-[#1D1D1F] border border-gray-200/80 focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/20 focus:border-[#1A7B88]"
               />
             </div>
           </div>
 
           {/* Automatic Calculation Card */}
-          <div className="p-3.5 bg-[#ffdea9]/40 rounded-xl border border-[#ffdea9] flex items-center justify-between">
+          <div className="p-3.5 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#7d5800]">calculate</span>
+              <span className="material-symbols-outlined text-amber-700">calculate</span>
               <div className="flex flex-col">
-                <span className="text-xs font-bold text-[#271900]">
+                <span className="text-xs font-bold text-amber-900">
                   المدة المحسوبة تلقائياً: {totalDays} يوماً
                 </span>
-                <span className="text-[11px] text-[#7d5800]">
+                <span className="text-[11px] text-amber-700">
                   {daysRemaining > 0
                     ? `متبقي على تاريخ العودة المقدر: ${daysRemaining} يوماً`
                     : 'تاريخ العودة قد حان أو انتهى'}
                 </span>
               </div>
             </div>
-            <span className="px-2.5 py-1 rounded-full bg-[#7d5800] text-white text-[11px] font-bold">
+            <span className="px-2.5 py-1 rounded-full bg-amber-600 text-white text-[11px] font-bold shadow-2xs">
               تجميد الاشتراك مؤقتاً
             </span>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#111c2d] mb-1.5">
+            <label className="block text-xs font-bold text-[#1D1D1F] mb-1.5">
               ملاحظات إضافية بخصوص الإجازة
             </label>
             <input
@@ -199,7 +199,7 @@ export const VacationModal: React.FC<VacationModalProps> = ({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="مثال: تم التنسيق مع ولي الأمر لتعويض حصص التسميع لاحقاً"
-              className="w-full h-10 px-3 rounded-xl bg-[#f0f3ff] text-[#111c2d] focus:outline-none"
+              className="w-full h-11 px-3.5 rounded-xl bg-[#F5F5F7] text-[#1D1D1F] border border-gray-200/80 focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/20 focus:border-[#1A7B88]"
             />
           </div>
 

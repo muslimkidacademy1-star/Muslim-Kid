@@ -52,9 +52,9 @@ export const ActivityLogModal: React.FC<ActivityLogModalProps> = ({ isOpen, onCl
         </div>
 
         {/* Search */}
-        <div className="p-4 border-b border-[#bec8c8]/20 bg-white">
+        <div className="p-4 border-b border-gray-100 bg-white">
           <div className="relative">
-            <span className="material-symbols-outlined absolute right-3 top-2.5 text-[#6f7979] text-lg pointer-events-none">
+            <span className="material-symbols-outlined absolute right-3 top-2.5 text-gray-400 text-lg pointer-events-none">
               search
             </span>
             <input
@@ -62,7 +62,7 @@ export const ActivityLogModal: React.FC<ActivityLogModalProps> = ({ isOpen, onCl
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
               placeholder="بحث في السجل باسم الطالب، المشرف، أو نوع العملية..."
-              className="w-full h-10 pr-9 pl-4 rounded-xl bg-[#f0f3ff] text-[#111c2d] text-xs sm:text-sm focus:outline-none"
+              className="w-full h-11 pr-10 pl-4 rounded-xl bg-[#F5F5F7] text-[#1D1D1F] text-xs sm:text-sm border border-gray-200/80 focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/20 focus:border-[#1A7B88]"
             />
           </div>
         </div>
@@ -70,40 +70,40 @@ export const ActivityLogModal: React.FC<ActivityLogModalProps> = ({ isOpen, onCl
         {/* Log List */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3">
           {filteredLogs.length === 0 ? (
-            <div className="text-center py-12 text-[#6f7979] text-xs sm:text-sm">
+            <div className="text-center py-12 text-gray-500 text-xs sm:text-sm">
               لا توجد عمليات تطابق البحث.
             </div>
           ) : (
             filteredLogs.map((log) => (
               <div
                 key={log.id}
-                className="p-4 rounded-xl bg-[#f9f9ff] border border-[#bec8c8]/20 flex flex-col gap-2 hover:bg-[#f0f3ff] transition-colors"
+                className="p-4 rounded-xl bg-[#F5F5F7] border border-gray-200/70 flex flex-col gap-2 hover:bg-white hover:shadow-2xs transition-all"
               >
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#005253]"></span>
-                    <span className="font-bold text-sm text-[#111c2d]">{log.action}</span>
+                    <span className="w-2 h-2 rounded-full bg-[#1A7B88]"></span>
+                    <span className="font-bold text-sm text-[#1D1D1F]">{log.action}</span>
                     {log.studentName && (
-                      <span className="px-2 py-0.5 rounded-full bg-[#dee8ff] text-[#005253] text-xs font-bold">
+                      <span className="px-2 py-0.5 rounded-full bg-[#EAF5F7] text-[#125862] border border-[#1A7B88]/20 text-xs font-bold">
                         طالب: {log.studentName}
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-[#6f7979]">
-                    <span className="material-symbols-outlined text-sm">schedule</span>
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500 font-mono">
+                    <span className="material-symbols-outlined text-sm text-gray-400">schedule</span>
                     <span dir="ltr">{log.timestamp}</span>
                   </div>
                 </div>
 
-                <p className="text-xs sm:text-sm text-[#3f4949] leading-relaxed pr-4">
+                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed pr-3">
                   {log.details}
                 </p>
 
-                <div className="flex items-center gap-2 pt-1 border-t border-[#bec8c8]/10 text-xs text-[#6f7979]">
-                  <span className="material-symbols-outlined text-sm text-[#005253]">person</span>
+                <div className="flex items-center gap-2 pt-1 border-t border-gray-200/50 text-xs text-gray-500">
+                  <span className="material-symbols-outlined text-sm text-[#1A7B88]">person</span>
                   <span>المسؤول:</span>
-                  <span className="font-semibold text-[#111c2d]">{log.userName}</span>
-                  <span className="text-[11px] px-1.5 py-0.5 rounded bg-[#e7eeff] text-[#3f4949]">
+                  <span className="font-semibold text-[#1D1D1F]">{log.userName}</span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-white text-gray-600 border border-gray-200/60 font-medium">
                     {log.userRole}
                   </span>
                 </div>

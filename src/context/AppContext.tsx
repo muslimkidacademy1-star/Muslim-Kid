@@ -621,7 +621,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Helper to find supervisor
   const getSupervisorById = useCallback((id: string): Supervisor | undefined => {
-    return INITIAL_SUPERVISORS.find((s) => s.id === id);
+    if (!id) return undefined;
+    const byId = INITIAL_SUPERVISORS.find((s) => s.id === id);
+    if (byId) return byId;
+    return INITIAL_SUPERVISORS.find((s) => s.assignedTeacherIds?.includes(id));
   }, []);
 
   // Automatic Business Logic 2: Automatic vacation check and status recalculation
@@ -1472,20 +1475,34 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const now = new Date();
     const nowStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
 
-    const headers = [
-      'م',
-      'اسم الطالب',
-      'المعلم المسؤول',
-      'الحلقة ومسار التسميع',
-      'رقم ولي الأمر',
-      'قيمة الاشتراك الشهري (ر.س)',
-      'مصروفات المعلم (ر.س)',
-      'تاريخ بدء الاشتراك',
-      'تاريخ آخر تقرير',
-      'حالة التقرير الدوري',
-      'حالة الاشتراك',
-      'الملاحظات والإجازة',
-    ];
+    const isManager = currentUser.role === 'manager';
+    const headers = isManager
+      ? [
+          'م',
+          'اسم الطالب',
+          'المعلم المسؤول',
+          'الحلقة ومسار التسميع',
+          'رقم ولي الأمر',
+          'قيمة الاشتراك الشهري (ر.س)',
+          'مصروفات المعلم (ر.س)',
+          'تاريخ بدء الاشتراك',
+          'تاريخ آخر تقرير',
+          'حالة التقرير الدوري',
+          'حالة الاشتراك',
+          'الملاحظات والإجازة',
+        ]
+      : [
+          'م',
+          'اسم الطالب',
+          'المعلم المسؤول',
+          'الحلقة ومسار التسميع',
+          'رقم ولي الأمر',
+          'تاريخ بدء الاشتراك',
+          'تاريخ آخر تقرير',
+          'حالة التقرير الدوري',
+          'حالة الاشتراك',
+          'الملاحظات والإجازة',
+        ];
 
     const dataRows = exportData.map((s, idx) => {
       const teacher = getTeacherById(s.teacherId);
@@ -1511,14 +1528,29 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           ? Number(s.teacherCost)
           : Math.round((teacher?.monthlySalary || 1500) / Math.max(1, teacher?.studentsCount || 10));
 
+      if (isManager) {
+        return [
+          idx + 1,
+          s.name,
+          teacher?.name || 'غير محدد',
+          s.surahProgress || teacher?.circleName || 'حلقة القرآن',
+          s.parentPhone,
+          Number(s.subscriptionFee) || 0,
+          teacherCostVal,
+          s.subscriptionDate,
+          s.lastReportDate,
+          reportStatusText,
+          statusText,
+          s.notes || '-',
+        ];
+      }
+
       return [
         idx + 1,
         s.name,
         teacher?.name || 'غير محدد',
         s.surahProgress || teacher?.circleName || 'حلقة القرآن',
         s.parentPhone,
-        Number(s.subscriptionFee) || 0,
-        teacherCostVal,
         s.subscriptionDate,
         s.lastReportDate,
         reportStatusText,

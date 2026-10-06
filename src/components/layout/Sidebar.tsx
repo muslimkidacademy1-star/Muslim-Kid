@@ -41,11 +41,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
               ? 'لوحة التحكم التنفيذية'
               : currentUser.role === 'general_supervisor'
               ? 'لوحة الإشراف العام'
-              : 'لوحة المتابعة الإشرافية',
+              : 'المتابعة اليومية',
           icon: 'dashboard',
         },
+        {
+          id: 'teachers' as NavigationTab,
+          label: currentUser.role === 'sub_supervisor' ? 'معلموني' : 'شاشة المعلمين',
+          icon: 'badge',
+        },
         { id: 'students' as NavigationTab, label: 'شاشة الطلاب', icon: 'school' },
-        { id: 'teachers' as NavigationTab, label: 'شاشة المعلمين', icon: 'badge' },
         { id: 'reports' as NavigationTab, label: 'شاشة التقارير', icon: 'monitoring' },
         { id: 'logs' as NavigationTab, label: 'سجل العمليات', icon: 'history' },
       ];
@@ -63,22 +67,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <aside
         className={`fixed right-0 ${
           isSuperAdmin ? 'top-11 h-[calc(100vh-2.75rem)]' : 'top-0 h-full'
-        } w-72 bg-white shadow-[0_1px_8px_rgba(0,0,0,0.04)] border-l border-[#bec8c8]/20 z-50 flex flex-col justify-between py-5 transition-transform duration-300 ease-in-out ${
+        } w-72 bg-white shadow-[0_1px_8px_rgba(0,0,0,0.03)] border-l border-gray-200/80 z-50 flex flex-col justify-between py-4 transition-transform duration-300 ease-in-out ${
           isOpenMobile ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
         }`}
       >
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-4">
           {/* Academy Brand Logo & Title */}
           <div className="px-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-[#005253]/10 flex items-center justify-center text-[#005253] flex-shrink-0 shadow-xs">
-                <span className="material-symbols-outlined text-2xl">menu_book</span>
-              </div>
+            <div className="flex items-center gap-2.5">
+              <img
+                src="/logo.jpg"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/icon.svg';
+                }}
+                alt="شعار الأكاديمية"
+                className="w-10 h-10 rounded-xl aspect-square object-contain shadow-2xs border border-gray-100"
+              />
               <div className="flex flex-col">
-                <span className="font-bold text-base text-[#005253] leading-tight tracking-tight">
+                <span className="font-bold text-sm sm:text-base text-[#125862] leading-tight tracking-tight">
                   أكاديمية المسلم الصغير
                 </span>
-                <span className="text-xs text-[#6f7979] leading-normal font-medium">
+                <span className="text-xs text-gray-500 leading-normal font-medium">
                   نظام المتابعة الإدارية
                 </span>
               </div>
@@ -87,35 +96,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {/* Mobile close button */}
             <button
               onClick={onCloseMobile}
-              className="lg:hidden w-8 h-8 rounded-lg flex items-center justify-center text-[#6f7979] hover:bg-[#f0f3ff]"
+              className="lg:hidden min-h-[36px] min-w-[36px] rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 cursor-pointer"
+              aria-label="إغلاق القائمة"
             >
               <span className="material-symbols-outlined text-xl">close</span>
             </button>
           </div>
 
           {/* User Profile Card with current Role Badge */}
-          <div className="mx-4 p-3 bg-[#f0f3ff] rounded-xl flex items-center gap-3 border border-[#bec8c8]/20">
+          <div className="mx-4 p-3 bg-[#F5F5F7] rounded-xl flex items-center gap-3 border border-gray-200/70">
             <div className="relative flex-shrink-0">
-              <div className="w-10 h-10 rounded-full bg-[#005253] flex items-center justify-center text-white font-bold text-sm shadow-xs">
+              <div className="w-10 h-10 rounded-full bg-[#1A7B88] flex items-center justify-center text-white font-bold text-sm shadow-2xs">
                 {currentUser.initials}
               </div>
-              <span className="absolute bottom-0 left-0 w-2.5 h-2.5 bg-green-500 rounded-full ring-2 ring-white"></span>
+              <span className="absolute bottom-0 left-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white"></span>
             </div>
             <div className="flex flex-col min-w-0 flex-1">
-              <span className="font-bold text-sm text-[#111c2d] truncate">
+              <span className="font-bold text-sm text-[#1D1D1F] truncate">
                 {currentUser.name}
               </span>
               <div className="flex items-center gap-1 mt-0.5">
-                <span
-                  className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold ${
-                    currentUser.role === 'manager'
-                      ? 'bg-[#dee8ff] text-[#005253]'
-                      : currentUser.role === 'general_supervisor'
-                      ? 'bg-[#ffdea9] text-[#7d5800]'
-                      : 'bg-[#a6eff1] text-[#002021]'
-                  }`}
-                >
-                  {currentUser.title}
+                <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#EAF5F7] text-[#125862] border border-[#1A7B88]/20">
+                  {currentUser.title || (currentUser.role === 'manager' ? 'المدير العام' : 'المشرف')}
                 </span>
               </div>
             </div>
@@ -134,13 +136,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     setActiveTab(item.id);
                     if (onCloseMobile) onCloseMobile();
                   }}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-sm font-semibold text-right ${
+                  className={`min-h-[44px] flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all text-xs sm:text-sm font-bold text-right cursor-pointer active:scale-98 ${
                     isActive
-                      ? 'bg-[#186b6d] text-white shadow-[0_4px_20px_-2px_rgba(24,107,109,0.25)]'
-                      : 'text-[#3f4949] hover:bg-[#f0f3ff] hover:text-[#111c2d]'
+                      ? 'bg-[#1A7B88] text-white shadow-xs'
+                      : 'text-gray-700 hover:bg-[#EAF5F7] hover:text-[#125862]'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-xl">{item.icon}</span>
+                  <span className={`material-symbols-outlined text-xl ${isActive ? 'text-white' : 'text-[#1A7B88]'}`}>{item.icon}</span>
                   <span className="flex-1">{item.label}</span>
                 </button>
               );
@@ -155,12 +157,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Bottom Section: Version & Logout */}
         <div className="px-4 flex flex-col gap-2">
-          <div className="p-2.5 bg-[#e7eeff] rounded-xl flex items-center justify-between text-[#3f4949] border border-[#bec8c8]/20">
+          <div className="p-2.5 bg-[#F5F5F7] rounded-xl flex items-center justify-between text-gray-600 border border-gray-200/60">
             <div className="flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-base text-[#005253]">verified</span>
-              <span className="text-xs font-semibold">النسخة الإدارية 2.4</span>
+              <span className="material-symbols-outlined text-base text-[#1A7B88]">verified</span>
+              <span className="text-xs font-semibold">منظومة المتابعة المعتمدة</span>
             </div>
-            <span className="text-xs text-[#6f7979]">1445هـ</span>
+            <span className="text-xs text-gray-500 font-mono">1446هـ</span>
           </div>
 
           <button
@@ -168,7 +170,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               logout();
               if (onCloseMobile) onCloseMobile();
             }}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-rose-50 text-[#ba1a1a] hover:bg-[#ffdad6] hover:text-[#93000a] transition-all text-xs font-bold border border-rose-200 cursor-pointer shadow-xs"
+            className="min-h-[44px] w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 transition-all text-xs font-bold border border-rose-200 cursor-pointer shadow-2xs active:scale-98"
           >
             <span className="material-symbols-outlined text-lg">logout</span>
             <span>تسجيل الخروج من النظام</span>

@@ -85,12 +85,19 @@ export const Header: React.FC<HeaderProps> = ({
     };
   }, [isTeacherAccountOpen]);
 
-  // Dedicated Minimalist Clean Header for Teacher Portal (Mobile First)
-  if (currentUser.role === 'teacher') {
+  // Dedicated Minimalist Clean Header for Teacher, Sub-Supervisor, and General Supervisor Portals (Mobile First)
+  if (
+    currentUser.role === 'teacher' ||
+    currentUser.role === 'sub_supervisor' ||
+    currentUser.role === 'general_supervisor'
+  ) {
+    const isTeacherRole = currentUser.role === 'teacher';
+    const isGeneralSupervisorRole = currentUser.role === 'general_supervisor';
     const teacherObj = teachers.find(
       (t) => t.id === currentUser.teacherId || t.name === currentUser.name || t.id === currentUser.id
     );
     const circleName = teacherObj?.circleName || (currentUser as any).circleName || 'حلقة القرآن الكريم';
+    const assignedCount = currentUser.assignedTeacherIds?.length || 0;
 
     return (
       <header
@@ -119,13 +126,19 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={() => setIsTeacherAccountOpen(!isTeacherAccountOpen)}
             className="min-h-[44px] min-w-[44px] px-2.5 py-1.5 rounded-xl bg-gray-50 hover:bg-[#EAF5F7] border border-gray-200/80 text-[#125862] transition-colors flex items-center gap-2 cursor-pointer shadow-2xs active:scale-98"
-            aria-label="حساب المعلم"
+            aria-label={
+              isTeacherRole
+                ? 'حساب المعلم'
+                : isGeneralSupervisorRole
+                ? 'حساب المشرف العام'
+                : 'حساب المشرف'
+            }
             aria-expanded={isTeacherAccountOpen}
           >
             <div className="w-8 h-8 rounded-full bg-[#1A7B88] text-white font-bold flex items-center justify-center text-xs shadow-2xs shrink-0">
               {currentUser.initials}
             </div>
-            <span className="hidden sm:inline-block font-bold text-xs text-gray-800 max-w-[110px] truncate">
+            <span className="hidden sm:inline-block font-bold text-xs text-gray-800 max-w-[120px] truncate">
               {currentUser.name.split(' ')[0]}
             </span>
             <span className="material-symbols-outlined text-gray-500 text-lg">
@@ -136,8 +149,8 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Account Popover Menu */}
           {isTeacherAccountOpen && (
             <div className="absolute left-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-gray-100 p-3 z-50 flex flex-col gap-2.5 animate-in fade-in zoom-in-95 duration-150 text-right">
-              {/* Teacher Info */}
-              <div className="p-3 rounded-xl bg-[#F4F9FA] border border-[#1A7B88]/15 flex items-start gap-3">
+              {/* User Info Card */}
+              <div className="p-3 rounded-xl bg-[#F5F5F7] border border-[#1A7B88]/15 flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full bg-[#1A7B88] text-white font-bold flex items-center justify-center text-sm shadow-xs shrink-0">
                   {currentUser.initials}
                 </div>
@@ -145,20 +158,30 @@ export const Header: React.FC<HeaderProps> = ({
                   <span className="text-[11px] text-gray-500 font-medium block">أهلًا بك</span>
                   <h4 className="font-bold text-sm text-gray-900 truncate">{currentUser.name}</h4>
                   <span className="inline-block mt-0.5 text-xs text-[#1A7B88] font-semibold truncate">
-                    {circleName}
+                    {isTeacherRole
+                      ? circleName
+                      : isGeneralSupervisorRole
+                      ? currentUser.title || 'المشرف العام للأكاديمية'
+                      : `${currentUser.title || 'مشرف تعليمي'} · ${assignedCount} معلمين`}
                   </span>
                 </div>
               </div>
 
               {/* Role Preview Banner for Super Admin */}
-              {isSuperAdmin && previewRole === 'teacher' && (
+              {isSuperAdmin && previewRole && (
                 <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex flex-col gap-1.5">
                   <div className="flex items-center gap-1.5 font-bold">
                     <span className="material-symbols-outlined text-sm text-amber-600">visibility</span>
-                    <span>وضع معاينة بوابة المعلم</span>
+                    <span>
+                      {previewRole === 'teacher'
+                        ? 'معاينة بوابة المعلم'
+                        : previewRole === 'general_supervisor'
+                        ? 'معاينة بوابة المشرف العام'
+                        : 'معاينة بوابة المشرف التعليمي'}
+                    </span>
                   </div>
                   <p className="text-[11px] text-amber-700 leading-snug">
-                    أنت تتصفح حالياً بصلاحية المعلم للتجربة.
+                    أنت تتصفح حالياً بوضع المعاينة المخصص للإدارة.
                   </p>
                   <button
                     onClick={() => {
@@ -171,6 +194,11 @@ export const Header: React.FC<HeaderProps> = ({
                   </button>
                 </div>
               )}
+
+              {/* PWA Install Button in Account Menu */}
+              <div className="px-1 pt-1">
+                <PWAInstallButton variant="sidebar" />
+              </div>
 
               {/* Refresh Data */}
               <button
@@ -207,84 +235,47 @@ export const Header: React.FC<HeaderProps> = ({
     );
   }
 
-  // Dedicated Minimalist Clean Header for Sub Supervisor Portal (Mobile Only: lg:hidden)
-  if (currentUser.role === 'sub_supervisor') {
-    return (
-      <header
-        className={`fixed ${
-          isSuperAdmin ? 'top-11' : 'top-0'
-        } right-0 left-0 h-14 bg-white/95 backdrop-blur-md border-b border-gray-100/90 z-40 flex items-center justify-between px-4 sm:px-6 lg:hidden shadow-2xs`}
-      >
-        {/* Right Side: Hamburger + Academy Logo */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onToggleSidebar}
-            className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-200/70 flex items-center justify-center text-gray-700 hover:bg-gray-100 transition-colors"
-            title="القائمة الجانبية"
-          >
-            <span className="material-symbols-outlined text-lg">menu</span>
-          </button>
-
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[#1A7B88] text-white flex items-center justify-center shadow-xs">
-              <span className="material-symbols-outlined text-base">menu_book</span>
-            </div>
-            <span className="font-bold text-sm text-[#125862] tracking-tight">
-              أكاديمية المسلم الصغير
-            </span>
-          </div>
-        </div>
-
-        {/* Left Side: Supervisor Name & Logout */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-gray-800">
-            {currentUser.name}
-          </span>
-          <span className="text-[10px] font-bold text-[#1A7B88] bg-[#EAF5F7] px-2 py-0.5 rounded-full border border-[#1A7B88]/20">
-            {currentUser.title || 'مشرف الحلقات'}
-          </span>
-          <button
-            onClick={logout}
-            className="p-1 rounded-lg text-gray-400 hover:text-rose-600 transition-colors cursor-pointer"
-            title="تسجيل الخروج"
-          >
-            <span className="material-symbols-outlined text-lg">logout</span>
-          </button>
-        </div>
-      </header>
-    );
-  }
-
   return (
     <header
       className={`fixed ${
         isSuperAdmin ? 'top-11' : 'top-0'
-      } right-0 lg:right-72 left-0 h-16 bg-[#F4F9FA]/95 backdrop-blur-xl border-b border-gray-200/70 z-40 flex items-center justify-between px-4 sm:px-6 transition-all duration-200`}
+      } right-0 lg:right-72 left-0 h-14 bg-white/95 backdrop-blur-md border-b border-gray-200/80 z-40 flex items-center justify-between px-3 sm:px-6 transition-all duration-200 shadow-2xs`}
     >
       {/* Right Side in RTL: Breadcrumb & Mobile Menu */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
         {/* Mobile menu toggle */}
         <button
           onClick={onToggleSidebar}
-          className="lg:hidden w-9 h-9 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-[#125862] hover:bg-[#EAF5F7] transition-colors"
+          className="lg:hidden min-h-[40px] min-w-[40px] rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center text-[#125862] hover:bg-[#EAF5F7] transition-colors cursor-pointer"
           title="القائمة الجانبية"
+          aria-label="القائمة الجانبية"
         >
           <span className="material-symbols-outlined text-xl">menu</span>
         </button>
 
-        <div className="flex items-center gap-1.5 text-gray-500">
-          <span className="font-semibold text-sm sm:text-base text-[#125862]">
-            منصة الإدارة والتحفيظ
-          </span>
-          <span className="material-symbols-outlined text-sm sm:text-base">chevron_left</span>
-          <span className="text-xs sm:text-sm text-gray-500 hidden md:inline">
-            متابعة الحلقات اليومية
-          </span>
+        <div className="flex items-center gap-2">
+          <img
+            src="/logo.jpg"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = '/icon.svg';
+            }}
+            alt="شعار الأكاديمية"
+            className="w-8 h-8 rounded-lg aspect-square object-contain shadow-2xs"
+          />
+          <div className="flex items-center gap-1.5 text-gray-500">
+            <span className="font-bold text-sm sm:text-base text-[#125862] tracking-tight">
+              أكاديمية المسلم الصغير
+            </span>
+            <span className="material-symbols-outlined text-xs sm:text-sm text-gray-400">chevron_left</span>
+            <span className="text-xs text-gray-500 hidden md:inline font-medium">
+              نظام المتابعة الإدارية
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Screen Switcher Tab (لوحة التحكم vs شاشة الطلاب vs شاشة المعلمين) */}
-      <div className="hidden sm:flex items-center bg-[#EAF5F7] p-1 rounded-xl border border-[#1A7B88]/20 shadow-xs">
+      <div className="hidden sm:flex items-center bg-[#EAF5F7] p-1 rounded-xl border border-[#1A7B88]/20 shadow-2xs">
         <button
           onClick={() => onSelectTab && onSelectTab('dashboard')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
@@ -324,7 +315,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Left Side in RTL: PWA Install, Search, Notifications, Profile Badge & Logout */}
-      <div className="flex items-center gap-1.5 sm:gap-2.5">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         {/* PWA Install Button */}
         <PWAInstallButton variant="header" />
 
@@ -337,15 +328,15 @@ export const Header: React.FC<HeaderProps> = ({
             type="text"
             value={searchTerm}
             onChange={handleSearchChange}
-            placeholder="بحث سريع عن طالب، حلقة، أو تقرير..."
-            className="w-56 lg:w-64 h-10 pr-9 pl-4 rounded-xl bg-white text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/30 border border-gray-200 transition-all"
+            placeholder="بحث عن طالب أو تقرير..."
+            className="w-48 lg:w-56 h-9 pr-9 pl-3 rounded-xl bg-gray-50 text-gray-900 placeholder:text-gray-400 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/30 border border-gray-200 transition-all"
           />
         </div>
 
         {/* User Role Badge & Logout (Strict Authenticated Role Only) */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#EAF5F7] border border-[#1A7B88]/20 text-[#125862] text-xs sm:text-sm font-semibold shadow-xs">
-            <span className="material-symbols-outlined text-base sm:text-lg">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#EAF5F7] border border-[#1A7B88]/20 text-[#125862] text-xs font-bold shadow-2xs">
+            <span className="material-symbols-outlined text-base">
               {currentUser.role === 'manager' ? 'admin_panel_settings' : 'shield_person'}
             </span>
             <span className="hidden sm:inline">الدور:</span>
@@ -353,8 +344,9 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <button
             onClick={logout}
-            className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-[#ba1a1a] border border-rose-200 transition-colors flex items-center justify-center cursor-pointer"
+            className="min-h-[36px] min-w-[36px] p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-colors flex items-center justify-center cursor-pointer shadow-2xs"
             title="تسجيل الخروج"
+            aria-label="تسجيل الخروج"
           >
             <span className="material-symbols-outlined text-lg">logout</span>
           </button>

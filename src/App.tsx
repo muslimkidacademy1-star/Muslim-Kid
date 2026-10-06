@@ -105,6 +105,7 @@ function AuthenticatedApp() {
           onEditStudent={handleOpenEdit}
           onManageVacation={handleOpenVacation}
           onOpenActivityLog={handleOpenActivityLog}
+          onNavigateTab={(tab) => setActiveTab(tab)}
         />
       );
     }
@@ -132,7 +133,10 @@ function AuthenticatedApp() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F4F9FA] text-[#111c2d] flex flex-col font-sans" dir="rtl">
+    <div
+      className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] flex flex-col font-sans selection:bg-[#1A7B88]/20 selection:text-[#125862]"
+      dir="rtl"
+    >
       {/* Super Admin Preview Bar - Rendered exclusively for mahmoudaliwahkotb@gmail.com and managers */}
       <SuperAdminViewBar onSelectRole={handleSwitchPreviewRole} />
 
@@ -163,13 +167,9 @@ function AuthenticatedApp() {
       <main
         className={`flex-1 ${
           isSuperAdmin
-            ? currentUser.role === 'sub_supervisor'
-              ? 'pt-28 lg:pt-20'
-              : 'pt-28 sm:pt-32'
-            : currentUser.role === 'sub_supervisor'
-            ? 'pt-20 lg:pt-8'
-            : 'pt-20'
-        } pb-12 px-4 sm:px-6 lg:px-8 lg:mr-72 transition-all duration-300`}
+            ? 'pt-24 lg:pt-20'
+            : 'pt-18 lg:pt-16'
+        } pb-16 px-3.5 sm:px-6 lg:px-8 lg:mr-72 transition-all duration-300`}
       >
         <div className="max-w-7xl mx-auto">{renderMainContent()}</div>
       </main>

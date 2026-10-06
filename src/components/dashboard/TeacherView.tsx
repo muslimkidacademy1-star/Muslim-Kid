@@ -182,7 +182,10 @@ export const TeacherView: React.FC = () => {
       if (s.scheduleDays && s.scheduleDays.length > 0) {
         return s.scheduleDays.some((d) => normalizeDayName(d) === normalizedToday);
       }
-      return true;
+      if (s.daySchedule && Object.keys(s.daySchedule).length > 0) {
+        return Object.keys(s.daySchedule).some((d) => normalizeDayName(d) === normalizedToday);
+      }
+      return false;
     });
 
     // Sort chronologically by session time
@@ -437,7 +440,7 @@ export const TeacherView: React.FC = () => {
                         {cycleCount === 0
                           ? `لم تبدأ الباقة (0 من ${maxPkg})`
                           : isCycleComplete
-                          ? `اكتملت الباقة (${maxPkg}/${maxPkg}) ⭐`
+                          ? `اكتملت الباقة (${maxPkg}/${maxPkg})`
                           : `أُنجزت ${cycleCount} من ${maxPkg} حصص`}
                       </span>
                     </div>
@@ -515,7 +518,7 @@ export const TeacherView: React.FC = () => {
                         className="min-h-[38px] w-full py-1 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
                       >
                         <span className="material-symbols-outlined text-sm">send</span>
-                        <span>إرسال التقرير النهائي للمدير ⭐</span>
+                        <span>إرسال التقرير النهائي للمدير</span>
                       </button>
                     )}
 
@@ -760,7 +763,7 @@ export const TeacherView: React.FC = () => {
                         className="min-h-[38px] w-full py-1 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
                       >
                         <span className="material-symbols-outlined text-sm">send</span>
-                        <span>إرسال التقرير النهائي للمدير ⭐</span>
+                        <span>إرسال التقرير النهائي للمدير</span>
                       </button>
                     )}
 

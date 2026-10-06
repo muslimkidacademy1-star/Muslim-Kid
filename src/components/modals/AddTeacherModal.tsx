@@ -106,8 +106,8 @@ export const AddTeacherModal: React.FC<AddTeacherModalProps> = ({
 
           {/* Teacher Name */}
           <div>
-            <label className="block text-xs font-bold text-[#111c2d] mb-1.5">
-              اسم المعلم / الشيخ <span className="text-[#ba1a1a]">*</span>
+            <label className="block text-xs font-bold text-[#1D1D1F] mb-1.5">
+              اسم المعلم / الشيخ <span className="text-rose-600">*</span>
             </label>
             <div className="relative">
               <input
@@ -119,9 +119,9 @@ export const AddTeacherModal: React.FC<AddTeacherModalProps> = ({
                   setError(null);
                 }}
                 placeholder="مثال: الشيخ عبد الله الراشد"
-                className="w-full h-11 px-3 pl-9 rounded-xl bg-[#f0f3ff] text-[#111c2d] text-sm focus:outline-none focus:ring-2 focus:ring-[#005253]/30 font-medium"
+                className="w-full h-11 px-3.5 pl-10 rounded-xl bg-[#F5F5F7] text-[#1D1D1F] text-sm border border-gray-200/80 focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/20 focus:border-[#1A7B88] font-medium"
               />
-              <span className="material-symbols-outlined absolute left-3 top-3 text-[#6f7979] text-lg pointer-events-none">
+              <span className="material-symbols-outlined absolute left-3 top-3 text-gray-400 text-lg pointer-events-none">
                 badge
               </span>
             </div>
@@ -129,8 +129,8 @@ export const AddTeacherModal: React.FC<AddTeacherModalProps> = ({
 
           {/* Supervisor Selection */}
           <div>
-            <label className="block text-xs font-bold text-[#111c2d] mb-1.5">
-              المشرف المسؤول <span className="text-[#ba1a1a]">*</span>
+            <label className="block text-xs font-bold text-[#1D1D1F] mb-1.5">
+              المشرف المسؤول <span className="text-rose-600">*</span>
             </label>
             <div className="relative">
               <select
@@ -138,7 +138,7 @@ export const AddTeacherModal: React.FC<AddTeacherModalProps> = ({
                 value={supervisorId}
                 onChange={(e) => setSupervisorId(e.target.value)}
                 disabled={currentUser.role === 'sub_supervisor'}
-                className="w-full h-11 px-3 pl-9 rounded-xl bg-[#f0f3ff] text-[#111c2d] text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#005253]/30 cursor-pointer disabled:opacity-80 disabled:cursor-not-allowed"
+                className="w-full h-11 px-3.5 pl-10 rounded-xl bg-[#F5F5F7] text-[#1D1D1F] text-sm font-semibold border border-gray-200/80 focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/20 focus:border-[#1A7B88] cursor-pointer disabled:opacity-80 disabled:cursor-not-allowed"
               >
                 {supervisors.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -146,12 +146,12 @@ export const AddTeacherModal: React.FC<AddTeacherModalProps> = ({
                   </option>
                 ))}
               </select>
-              <span className="material-symbols-outlined absolute left-3 top-3 text-[#6f7979] text-lg pointer-events-none">
+              <span className="material-symbols-outlined absolute left-3 top-3 text-gray-400 text-lg pointer-events-none">
                 supervisor_account
               </span>
             </div>
             {currentUser.role === 'sub_supervisor' && (
-              <p className="text-[11px] text-[#005253] mt-1">
+              <p className="text-[11px] text-[#125862] mt-1 font-medium">
                 * يتم إسناد المعلم تلقائياً إلى إشرافك المباشر نظراً لصلاحيتك كمشرف فرعي.
               </p>
             )}
@@ -160,8 +160,8 @@ export const AddTeacherModal: React.FC<AddTeacherModalProps> = ({
           {/* Monthly Salary & Phone */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-[#111c2d] mb-1.5">
-                المصروفات الشهرية (المستحقات) <span className="text-[#ba1a1a]">*</span>
+              <label className="block text-xs font-bold text-[#1D1D1F] mb-1.5">
+                المصروفات الشهرية (المستحقات) <span className="text-rose-600">*</span>
               </label>
               <div className="relative">
                 <input
@@ -170,17 +170,17 @@ export const AddTeacherModal: React.FC<AddTeacherModalProps> = ({
                   required
                   value={monthlySalary}
                   onChange={(e) => setMonthlySalary(Number(e.target.value))}
-                  className="w-full h-11 px-3 pl-11 rounded-xl bg-[#f0f3ff] text-[#111c2d] text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#005253]/30"
+                  className="w-full h-11 px-3.5 pl-12 rounded-xl bg-[#F5F5F7] text-[#1D1D1F] text-sm font-bold border border-gray-200/80 focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/20 focus:border-[#1A7B88]"
                 />
-                <span className="absolute left-3 top-3 text-xs text-[#6f7979] font-medium">
+                <span className="absolute left-3 top-3 text-xs text-gray-500 font-medium">
                   ر.س
                 </span>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#111c2d] mb-1.5">
-                رقم هاتف المعلم (واتساب) <span className="text-[#ba1a1a]">*</span>
+              <label className="block text-xs font-bold text-[#1D1D1F] mb-1.5">
+                رقم هاتف المعلم (واتساب) <span className="text-rose-600">*</span>
               </label>
               <div className="relative">
                 <input
@@ -190,9 +190,9 @@ export const AddTeacherModal: React.FC<AddTeacherModalProps> = ({
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="05XXXXXXXX"
-                  className="w-full h-11 px-3 pl-9 rounded-xl bg-[#f0f3ff] text-[#111c2d] text-sm text-right focus:outline-none focus:ring-2 focus:ring-[#005253]/30 font-medium"
+                  className="w-full h-11 px-3.5 pl-10 rounded-xl bg-[#F5F5F7] text-[#1D1D1F] text-sm text-right border border-gray-200/80 focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/20 focus:border-[#1A7B88] font-medium"
                 />
-                <span className="material-symbols-outlined absolute left-3 top-3 text-[#6f7979] text-lg pointer-events-none">
+                <span className="material-symbols-outlined absolute left-3 top-3 text-gray-400 text-lg pointer-events-none">
                   phone_iphone
                 </span>
               </div>
@@ -202,7 +202,7 @@ export const AddTeacherModal: React.FC<AddTeacherModalProps> = ({
           {/* Circle Name & Track */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-[#111c2d] mb-1.5">
+              <label className="block text-xs font-bold text-[#1D1D1F] mb-1.5">
                 اسم الحلقة القرآنية
               </label>
               <input
@@ -210,12 +210,12 @@ export const AddTeacherModal: React.FC<AddTeacherModalProps> = ({
                 value={circleName}
                 onChange={(e) => setCircleName(e.target.value)}
                 placeholder="مثال: حلقة الفرقان"
-                className="w-full h-11 px-3 rounded-xl bg-[#f0f3ff] text-[#111c2d] text-sm focus:outline-none focus:ring-2 focus:ring-[#005253]/30 font-medium"
+                className="w-full h-11 px-3.5 rounded-xl bg-[#F5F5F7] text-[#1D1D1F] text-sm border border-gray-200/80 focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/20 focus:border-[#1A7B88] font-medium"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#111c2d] mb-1.5">
+              <label className="block text-xs font-bold text-[#1D1D1F] mb-1.5">
                 المسار الأكاديمي والتخصص
               </label>
               <input
@@ -223,14 +223,14 @@ export const AddTeacherModal: React.FC<AddTeacherModalProps> = ({
                 value={track}
                 onChange={(e) => setTrack(e.target.value)}
                 placeholder="مثال: مسار التلقين وجزء عمّ"
-                className="w-full h-11 px-3 rounded-xl bg-[#f0f3ff] text-[#111c2d] text-sm focus:outline-none focus:ring-2 focus:ring-[#005253]/30 font-medium"
+                className="w-full h-11 px-3.5 rounded-xl bg-[#F5F5F7] text-[#1D1D1F] text-sm border border-gray-200/80 focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/20 focus:border-[#1A7B88] font-medium"
               />
             </div>
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-xs font-bold text-[#111c2d] mb-1.5">
+            <label className="block text-xs font-bold text-[#1D1D1F] mb-1.5">
               ملاحظات إدارية / إشرافية
             </label>
             <textarea
@@ -238,7 +238,7 @@ export const AddTeacherModal: React.FC<AddTeacherModalProps> = ({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="أي ملاحظات حول أوقات التسميع أو التزامات المعلم..."
-              className="w-full p-3 rounded-xl bg-[#f0f3ff] text-[#111c2d] text-sm focus:outline-none focus:ring-2 focus:ring-[#005253]/30 resize-none font-medium"
+              className="w-full p-3.5 rounded-xl bg-[#F5F5F7] text-[#1D1D1F] text-sm border border-gray-200/80 focus:outline-none focus:ring-2 focus:ring-[#1A7B88]/20 focus:border-[#1A7B88] resize-none font-medium"
             />
           </div>
 
