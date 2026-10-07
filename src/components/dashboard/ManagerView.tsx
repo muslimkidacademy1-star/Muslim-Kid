@@ -1,22 +1,53 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Student, Report } from '../../types';
-import { getParentWhatsAppUrl, getReportWhatsAppUrl } from '../../utils/whatsapp';
+import { Student, Report, Teacher } from '../../types';
+import { getReportWhatsAppUrl, getTeacherReminderWhatsAppUrl } from '../../utils/whatsapp';
 import { generateStudentReportPdf } from '../../utils/pdfGenerator';
+import { ManagerBottomNav, ManagerTab } from './ManagerBottomNav';
+import { ManagerQuickStatsChart } from './ManagerQuickStatsChart';
+import { PWAInstallButton } from '../common/PWAInstallButton';
 
 interface ManagerViewProps {
   onAddStudent?: () => void;
   onEditStudent?: (student: Student) => void;
   onAddReport?: (student: Student) => void;
   onManageVacation?: (student: Student) => void;
+  onNavigateTab?: (tab: 'dashboard' | 'students' | 'teachers' | 'reports' | 'logs') => void;
+  onOpenActivityLog?: () => void;
 }
 
-export const ManagerView: React.FC<ManagerViewProps> = () => {
+// Get Cairo Date Details
+function getCairoDateDetails() {
+  const now = new Date();
+  const weekday = new Intl.DateTimeFormat('ar-EG', {
+    timeZone: 'Africa/Cairo',
+    weekday: 'long',
+  }).format(now);
+
+  const formattedDate = new Intl.DateTimeFormat('ar-EG', {
+    timeZone: 'Africa/Cairo',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }).format(now);
+
+  const currentMonthName = new Intl.DateTimeFormat('ar-EG', {
+    timeZone: 'Africa/Cairo',
+    month: 'long',
+    year: 'numeric',
+  }).format(now);
+
+  return { weekday, formattedDate, currentMonthName };
+}
+
+export const ManagerView: React.FC<ManagerViewProps> = ({
+  onNavigateTab,
+  onOpenActivityLog,
+}) => {
   const {
     students,
     teachers,
     reports,
-    activityLogs,
     totalSubscriptions,
     totalTeacherCosts,
     netProfit,
@@ -26,22 +57,44 @@ export const ManagerView: React.FC<ManagerViewProps> = () => {
     overdueStudentsCount,
     financialMonths,
     getTeacherById,
-    getDaysSinceLastReport,
-    isOverdue,
-    getReportStatusInfo,
     exportToExcel,
     addActivityLog,
     markReportAsSentToParent,
     currentUser,
+    isSuperAdmin,
+    previewRole,
+    setPreviewRole,
+    fetchFromSupabase,
+    logout,
   } = useApp();
 
-  const [selectedPeriod] = useState('هذا الشهر (شعبان - رمضان 1445)');
+  const { weekday: cairoWeekday, formattedDate: cairoFormattedDate, currentMonthName } = useMemo(
+    () => getCairoDateDetails(),
+    []
+  );
+
   const [sentReportSuccessId, setSentReportSuccessId] = useState<string | null>(null);
 
-  // 1. Pending Reports for Dispatch: Reports submitted by teachers (status: submitted_to_director / submitted_ready_to_send)
+  // Reminder Modal State
+  const [reminderTarget, setReminderTarget] = useState<{
+    teacher: Teacher | undefined;
+    student: Student;
+    report: Report;
+  } | null>(null);
+
+  // Mobile Hub Modals State
+  const [isAcademyModalOpen, setIsAcademyModalOpen] = useState(false);
+  const [isMoreModalOpen, setIsMoreModalOpen] = useState(false);
+
+  // 1. Pending Reports for Action: Reports submitted by teachers needing director approval / dispatch
   const pendingDispatchReports = useMemo(() => {
     return reports
-      .filter((r) => r.submissionStatus === 'submitted_to_director' || r.submissionStatus === 'submitted_ready_to_send')
+      .filter(
+        (r) =>
+          r.submissionStatus === 'submitted_to_director' ||
+          r.submissionStatus === 'submitted_ready_to_send' ||
+          (!r.submissionStatus && (r as any).status !== 'approved')
+      )
       .map((report) => {
         const student = students.find((s) => s.id === report.studentId);
         const teacher = getTeacherById(report.teacherId);
@@ -51,23 +104,15 @@ export const ManagerView: React.FC<ManagerViewProps> = () => {
           teacher,
         };
       })
-      .filter((item) => item.student !== undefined);
+      .filter((item): item is { report: Report; student: Student; teacher: Teacher | undefined } => item.student !== undefined);
   }, [reports, students, getTeacherById]);
 
   // 2. Sent & Completed Reports
   const completedDispatchReports = useMemo(() => {
-    return reports
-      .filter((r) => r.submissionStatus === 'sent_to_parent' || r.submissionStatus === 'approved')
-      .map((report) => {
-        const student = students.find((s) => s.id === report.studentId);
-        const teacher = getTeacherById(report.teacherId);
-        return {
-          report,
-          student,
-          teacher,
-        };
-      });
-  }, [reports, students, getTeacherById]);
+    return reports.filter(
+      (r) => r.submissionStatus === 'sent_to_parent' || r.submissionStatus === 'approved'
+    );
+  }, [reports]);
 
   // Handle PDF Generation
   const handleDownloadPdf = (student: Student, report: Report) => {
@@ -80,26 +125,39 @@ export const ManagerView: React.FC<ManagerViewProps> = () => {
     });
   };
 
-  // Handle Mark as Sent
+  // Handle Mark as Sent (Strict separation from opening WhatsApp)
   const handleMarkAsSent = (reportId: string, studentName: string) => {
     markReportAsSentToParent(reportId);
     setSentReportSuccessId(reportId);
+    addActivityLog(
+      'اعتماد وإرسال تقرير',
+      studentName,
+      undefined,
+      `تم تأكيد إرسال تقرير الطالب ${studentName} لولي الأمر ونقله للأرشيف المعتمد بواسطة ${currentUser.name}`
+    );
     setTimeout(() => {
       setSentReportSuccessId(null);
-    }, 3000);
+    }, 3500);
   };
 
+  // Budget CSV Export
   const handleExportBudget = () => {
-    const headers = ['الشهر', 'إجمالي الاشتراكات المحصلة (ر.س)', 'مصروفات المعلمين (ر.س)', 'صافي الربح (ر.س)', 'هامش الربح'];
+    const headers = [
+      'الشهر',
+      'إجمالي الاشتراكات المسجلة (ر.س)',
+      'مستحقات المعلمين عن الطلاب (ر.س)',
+      'الفارق التقديري (ر.س)',
+      'هامش الفارق التقديري',
+    ];
     const rows = financialMonths.map((m) => [
       `"${m.monthName}"`,
       m.subscriptions,
       m.teacherCosts,
       m.netProfit,
-      `"${Math.round((m.netProfit / m.subscriptions) * 100)}%"`,
+      `"${Math.round((m.netProfit / (m.subscriptions || 1)) * 100)}%"`,
     ]);
     rows.push([
-      `"الشهر الحالي (شعبان 1445)"`,
+      `"${currentMonthName}"`,
       totalSubscriptions,
       totalTeacherCosts,
       netProfit,
@@ -116,336 +174,256 @@ export const ManagerView: React.FC<ManagerViewProps> = () => {
     link.click();
     document.body.removeChild(link);
 
-    addActivityLog('تصدير الميزانية المالية', undefined, undefined, 'تم تصدير كشف الميزانية وصافي الأرباح لآخر 6 أشهر بصيغة Excel');
+    addActivityLog(
+      'تصدير الميزانية المالية',
+      undefined,
+      undefined,
+      'تم تصدير كشف الميزانية والتقديرات المالية بصيغة CSV'
+    );
   };
 
-  const avgSubscription = activeStudentsCount > 0 ? Math.round(totalSubscriptions / activeStudentsCount) : 0;
-  const coverageRatio = totalTeacherCosts > 0 ? Math.round((totalSubscriptions / totalTeacherCosts) * 100) : 0;
-
-  // Student active vs overdue percentage calculations
-  const totalTrackedStudents = students.length;
-  const activePercent = totalTrackedStudents > 0 ? Math.round((activeStudentsCount / totalTrackedStudents) * 100) : 0;
-  const overduePercent = totalTrackedStudents > 0 ? Math.round((overdueStudentsCount / totalTrackedStudents) * 100) : 0;
-  const vacationPercent = totalTrackedStudents > 0 ? Math.round((vacationStudentsCount / totalTrackedStudents) * 100) : 0;
+  // Handle Bottom Nav Switch on Mobile
+  const handleBottomNavChange = (tab: ManagerTab) => {
+    if (tab === 'overview') {
+      if (onNavigateTab) onNavigateTab('dashboard');
+    } else if (tab === 'reports') {
+      if (onNavigateTab) onNavigateTab('reports');
+    } else if (tab === 'academy') {
+      setIsAcademyModalOpen(true);
+    } else if (tab === 'more') {
+      setIsMoreModalOpen(true);
+    }
+  };
 
   return (
-    <div className="flex flex-col w-full gap-6 text-right" dir="rtl">
+    <div className="flex flex-col w-full gap-5 text-right pb-24 sm:pb-12" dir="rtl">
       {/* SUCCESS TOAST ALERT */}
       {sentReportSuccessId && (
-        <div className="p-4 rounded-2xl bg-[#005253] text-white flex items-center justify-between shadow-lg animate-in slide-in-from-top-2 duration-200">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#1A7B88] text-white flex items-center justify-between shadow-md animate-in slide-in-from-top-2 duration-200">
           <div className="flex items-center gap-2.5">
-            <span className="material-symbols-outlined text-2xl text-[#a6eff1]">mark_email_read</span>
-            <span className="text-sm font-semibold">
-              تم تحديث حالة التقرير بنجاح ونقله إلى سجل التقارير المرسلة والمكتملة لولي الأمر!
+            <span className="material-symbols-outlined text-2xl text-emerald-200">check_circle</span>
+            <span className="text-xs sm:text-sm font-semibold">
+              تم اعتماد التقرير بنجاح ونقله إلى سجل التقارير المكتملة!
             </span>
           </div>
           <button
             onClick={() => setSentReportSuccessId(null)}
-            className="text-white/80 hover:text-white text-xs font-bold px-2 py-1 rounded-lg hover:bg-white/10"
+            className="text-white/80 hover:text-white text-xs font-bold px-2 py-1 rounded-lg hover:bg-white/10 cursor-pointer min-h-[36px]"
           >
             إغلاق
           </button>
         </div>
       )}
 
-      {/* TOP HEADER & EXECUTIVE CONTROLS */}
-      <div className="bg-linear-to-r from-[#005253] via-[#004243] to-[#002829] text-white p-6 sm:p-7 rounded-3xl shadow-md border border-[#005253]/30 flex flex-col md:flex-row md:items-center justify-between gap-5">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-white text-2xl font-bold shadow-inner flex-shrink-0">
-            {currentUser.initials || 'د'}
+      {/* TOP HEADER: Clean Apple-inspired Executive Title & Cairo Date */}
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-200/80 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-[#EAF5F7] border border-[#1A7B88]/20 flex items-center justify-center text-[#125862] text-xl font-bold shadow-2xs shrink-0">
+            {currentUser.initials || 'م'}
           </div>
           <div>
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-[#a6eff1] text-xs font-bold flex items-center gap-1">
-                <span className="material-symbols-outlined text-xs">admin_panel_settings</span>
-                <span>مركز القيادة والإدارة العامة</span>
-              </span>
-              <span className="px-2.5 py-0.5 rounded-full bg-[#fde047] text-[#713f12] text-xs font-bold">
-                {currentUser.title || 'المدير العام'}
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl sm:text-2xl font-bold text-[#1D1D1F] tracking-tight">
+                الرئيسية
+              </h1>
+              <span className="px-2.5 py-0.5 rounded-full bg-[#EAF5F7] text-[#125862] text-xs font-bold border border-[#1A7B88]/20">
+                {currentUser.name}
               </span>
               {pendingDispatchReports.length > 0 && (
-                <span className="px-2.5 py-0.5 rounded-full bg-[#ffdad6] text-[#ba1a1a] text-xs font-black animate-pulse">
-                  {pendingDispatchReports.length} تقارير بانتظار الإرسال
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 text-xs font-bold border border-amber-200">
+                  {pendingDispatchReports.length} تقرير يحتاج إجراء
                 </span>
               )}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold">
-              لوحة تحكم المدير العام - {currentUser.name}
-            </h1>
-            <p className="text-xs sm:text-sm text-[#e7eeff]/90 mt-1 max-w-xl leading-relaxed">
-              مركز الرقابة المالية المتكامل، إرسال تقارير الـ 8 حصص المعتمدة لأولياء الأمور، ومتابعة سجل العمليات الحية
+            <p className="text-xs text-gray-500 mt-1 flex items-center gap-1.5 font-medium">
+              <span className="material-symbols-outlined text-sm text-[#1A7B88]">schedule</span>
+              <span>{cairoWeekday}، {cairoFormattedDate}</span>
+              <span className="text-gray-400">·</span>
+              <span>توقيت القاهرة</span>
             </p>
           </div>
         </div>
 
-        {/* Global Action Buttons */}
-        <div className="flex items-center flex-wrap gap-2.5">
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3.5 py-2 rounded-xl text-white text-xs sm:text-sm font-semibold border border-white/15">
-            <span className="material-symbols-outlined text-[#a6eff1] text-lg">calendar_month</span>
-            <span>{selectedPeriod}</span>
-          </div>
-
+        {/* Desktop Quick Shortcuts */}
+        <div className="hidden sm:flex items-center gap-2">
+          {onNavigateTab && (
+            <button
+              onClick={() => onNavigateTab('reports')}
+              className="min-h-[44px] px-3.5 py-2 rounded-xl bg-gray-50 hover:bg-[#EAF5F7] border border-gray-200/80 text-[#125862] text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-base">description</span>
+              <span>عرض كل التقارير</span>
+            </button>
+          )}
           <button
             onClick={() => exportToExcel(students)}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white text-[#005253] text-xs sm:text-sm font-bold hover:bg-[#a6eff1] transition-all shadow-xs cursor-pointer"
-            title="تصدير كافة بيانات الأكاديمية بصيغة Excel"
+            className="min-h-[44px] px-3.5 py-2 rounded-xl bg-[#1A7B88] hover:bg-[#125862] text-white text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+            title="تصدير بيانات الأكاديمية بصيغة Excel"
           >
-            <span className="material-symbols-outlined text-lg">file_download</span>
-            <span>تصدير بيانات الأكاديمية (Excel)</span>
+            <span className="material-symbols-outlined text-base">download</span>
+            <span>تصدير Excel</span>
           </button>
         </div>
       </div>
 
-      {/* EXECUTIVE FINANCIAL KPI CARDS GRID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {/* Card 1: Revenue */}
-        <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-xs border border-[#bec8c8]/25 flex flex-col justify-between gap-4 hover:shadow-md transition-shadow relative overflow-hidden group">
-          <div className="absolute -left-6 -top-6 w-24 h-24 bg-[#005253]/5 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500"></div>
-          <div className="flex items-start justify-between relative z-10">
-            <div className="w-12 h-12 rounded-2xl bg-[#005253]/10 text-[#005253] flex items-center justify-center flex-shrink-0">
-              <span className="material-symbols-outlined text-2xl">account_balance_wallet</span>
-            </div>
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#005253]/10 text-[#005253] text-xs font-bold">
-              <span className="material-symbols-outlined text-xs">account_balance_wallet</span>
-              {activeStudentsCount > 0 ? `${activeStudentsCount} اشتراك نشط` : '0 اشتراكات'}
-            </span>
-          </div>
-          <div className="flex flex-col gap-1 relative z-10">
-            <span className="text-xs text-[#6f7979] font-bold">إجمالي الاشتراكات المحصلة</span>
-            <div className="text-2xl sm:text-3xl font-black text-[#111c2d] tracking-tight">
-              {totalSubscriptions.toLocaleString()}{' '}
-              <span className="text-sm font-bold text-[#6f7979]">ر.س</span>
-            </div>
-            <span className="text-xs text-[#005253] font-semibold mt-1">
-              {totalSubscriptions > 0
-                ? `مجموع رسوم الاشتراكات للطلاب المنتظمين (${activeStudentsCount} طالباً)`
-                : 'لا توجد اشتراكات مسجلة بعد'}
-            </span>
-          </div>
-        </div>
-
-        {/* Card 2: Teacher Costs */}
-        <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-xs border border-[#bec8c8]/25 flex flex-col justify-between gap-4 hover:shadow-md transition-shadow relative overflow-hidden group">
-          <div className="absolute -left-6 -top-6 w-24 h-24 bg-[#dee8ff]/60 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500"></div>
-          <div className="flex items-start justify-between relative z-10">
-            <div className="w-12 h-12 rounded-2xl bg-[#dee8ff] text-[#005253] flex items-center justify-center flex-shrink-0">
-              <span className="material-symbols-outlined text-2xl">payments</span>
-            </div>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#dee8ff] text-[#005253] text-xs font-bold">
-              {teachers.length} معلماً
-            </span>
-          </div>
-          <div className="flex flex-col gap-1 relative z-10">
-            <span className="text-xs text-[#6f7979] font-bold">إجمالي مصروفات المعلمين</span>
-            <div className="text-2xl sm:text-3xl font-black text-[#111c2d] tracking-tight">
-              {totalTeacherCosts.toLocaleString()}{' '}
-              <span className="text-sm font-bold text-[#6f7979]">ر.س</span>
-            </div>
-            <span className="text-xs text-[#6f7979] font-semibold mt-1">
-              {teachers.length > 0
-                ? `مستحقات ${teachers.length} معلماً ومحفظاً للشهر الحالي`
-                : 'لا يوجد معلمون مسجلون بعد'}
-            </span>
-          </div>
-        </div>
-
-        {/* Card 3: Net Profit */}
-        <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-xs border border-[#bec8c8]/25 flex flex-col justify-between gap-4 hover:shadow-md transition-shadow relative overflow-hidden group">
-          <div className="absolute -left-6 -top-6 w-24 h-24 bg-[#ffdea9]/40 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500"></div>
-          <div className="flex items-start justify-between relative z-10">
-            <div className="w-12 h-12 rounded-2xl bg-[#ffdea9]/60 text-[#7d5800] flex items-center justify-center flex-shrink-0">
-              <span className="material-symbols-outlined text-2xl">query_stats</span>
-            </div>
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#ffdea9] text-[#271900] text-xs font-bold">
-              هامش {profitMargin}%
-            </span>
-          </div>
-          <div className="flex flex-col gap-1 relative z-10">
-            <span className="text-xs text-[#6f7979] font-bold">صافي الأرباح التشغيلية</span>
-            <div className="text-2xl sm:text-3xl font-black text-[#7d5800] tracking-tight">
-              {netProfit.toLocaleString()}{' '}
-              <span className="text-sm font-bold text-[#7d5800]">ر.س</span>
-            </div>
-            <span className="text-xs text-[#7d5800] font-semibold mt-1">
-              {totalSubscriptions > 0 || totalTeacherCosts > 0
-                ? netProfit >= 0
-                  ? 'الفائض التشغيلي بعد سداد رواتب الكادر'
-                  : 'عجز تشغيلي يحتاج زيادة الاشتراكات'
-                : 'لا توجد عمليات مالية مسجلة بعد'}
-            </span>
-          </div>
-        </div>
-
-        {/* Card 4: Active Students */}
-        <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-xs border border-[#bec8c8]/25 flex flex-col justify-between gap-4 hover:shadow-md transition-shadow relative overflow-hidden group">
-          <div className="absolute -left-6 -top-6 w-24 h-24 bg-[#a6eff1]/30 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500"></div>
-          <div className="flex items-start justify-between relative z-10">
-            <div className="w-12 h-12 rounded-2xl bg-[#005253]/10 text-[#005253] flex items-center justify-center flex-shrink-0">
-              <span className="material-symbols-outlined text-2xl">local_library</span>
-            </div>
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#dee8ff] text-[#005253] text-xs font-bold">
-              {students.length > 0 ? `${activePercent}% انتظام` : '0%'}
-            </span>
-          </div>
-          <div className="flex flex-col gap-1 relative z-10">
-            <span className="text-xs text-[#6f7979] font-bold">الطلاب النشطين حالياً</span>
-            <div className="text-2xl sm:text-3xl font-black text-[#111c2d] tracking-tight">
-              {activeStudentsCount}{' '}
-              <span className="text-sm font-bold text-[#6f7979]">طالباً</span>
-            </div>
-            <span className="text-xs text-[#6f7979] font-semibold mt-1">
-              {students.length > 0
-                ? `من أصل ${students.length} مسجلاً (${vacationStudentsCount} في إجازة، ${overdueStudentsCount} يحتاج متابعة)`
-                : 'لم يتم تسجيل أي طلاب في النظام بعد'}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* SECTION 1: PROMINENT REPORTS DISPATCH CENTER (مركز إرسال تقارير الـ 8 حصص) */}
-      <section className="bg-linear-to-br from-white via-[#f4fbfa] to-[#e6f7f6] rounded-3xl p-5 sm:p-6 border-2 border-[#005253]/40 shadow-md flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#bec8c8]/30">
-          <div className="flex items-center gap-3">
-            <span className="w-12 h-12 rounded-2xl bg-[#005253] text-white flex items-center justify-center shadow-xs">
-              <span className="material-symbols-outlined text-2xl">send_and_archive</span>
+      {/* SECTION 1: التقارير التي تحتاج إجراء (First Section) */}
+      <section className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200/80 shadow-2xs flex flex-col gap-4">
+        {/* Section Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-100">
+          <div className="flex items-center gap-2.5">
+            <span className="w-9 h-9 rounded-xl bg-[#EAF5F7] text-[#125862] flex items-center justify-center shrink-0 border border-[#1A7B88]/20">
+              <span className="material-symbols-outlined text-xl">assignment_late</span>
             </span>
             <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg sm:text-xl font-black text-[#003738]">
-                  مركز إرسال تقارير الـ 8 حصص (Reports Dispatch Center)
+              <div className="flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-bold text-[#1D1D1F]">
+                  التقارير التي تحتاج إجراء
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full bg-[#005253] text-white text-xs font-black">
-                  {pendingDispatchReports.length} تقارير بانتظار الإرسال لأولياء الأمور
+                <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-xs font-bold">
+                  {pendingDispatchReports.length}
                 </span>
               </div>
-              <p className="text-xs text-[#526060] mt-0.5">
-                تقارير تم تسليمها واعتمادها من قِبل المعلمين بعد إتمام الطلاب دورات الـ 8 حصص، جاهزة للإرسال الرسمي والتحميل
+              <p className="text-xs text-gray-500 mt-0.5">
+                تقارير إنجاز الطلاب المرفوعة من المعلمين بانتظار الاعتماد والإرسال لأولياء الأمور
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-[#005253] bg-white px-3 py-1.5 rounded-xl border border-[#005253]/20 shadow-2xs">
-              التقارير المكتملة والمرسلة: {completedDispatchReports.length}
-            </span>
-          </div>
+          {/* Quick link to all reports */}
+          {onNavigateTab && (
+            <button
+              onClick={() => onNavigateTab('reports')}
+              className="text-xs font-bold text-[#1A7B88] hover:text-[#125862] self-start sm:self-auto flex items-center gap-1 cursor-pointer min-h-[44px] px-2"
+            >
+              <span>عرض كل التقارير ({reports.length})</span>
+              <span className="material-symbols-outlined text-base">chevron_left</span>
+            </button>
+          )}
         </div>
 
-        {/* Pending Reports Cards Grid */}
+        {/* Pending Reports List (Vertical Cards - Mobile First) */}
         {pendingDispatchReports.length === 0 ? (
-          <div className="py-8 bg-white/80 rounded-2xl text-center flex flex-col items-center justify-center border border-[#bec8c8]/20">
-            <span className="material-symbols-outlined text-4xl text-[#005253]/30 mb-1">
-              inbox
+          <div className="py-8 bg-gray-50/70 rounded-xl text-center flex flex-col items-center justify-center border border-gray-100 px-4">
+            <span className="material-symbols-outlined text-3xl text-gray-400 mb-1.5">
+              task_alt
             </span>
-            <p className="text-sm font-bold text-[#111c2d]">
-              لا توجد تقارير واردة حالياً
+            <p className="text-sm font-bold text-[#1D1D1F]">
+              لا توجد تقارير بانتظار الإجراء حالياً
             </p>
-            <p className="text-xs text-[#6f7979] mt-0.5">
-              ستظهر هنا تقارير دورة الـ 8 حصص المعتمدة من قِبل المعلمين (الحالة: submitted_to_director) فور رفعها لمراجعتها وإرسالها لأولياء الأمور
+            <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
+              جميع تقارير إنجاز الطلاب معتمدة ومُرسلة لأولياء الأمور بنجاح.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="flex flex-col gap-3">
             {pendingDispatchReports.map(({ report, student, teacher }) => {
-              if (!student) return null;
+              const packageSessions = report.cycleSessionsCount || student.packageSessionsCount || 8;
               const parentWhatsAppUrl = getReportWhatsAppUrl(student.parentPhone, student.name);
 
               return (
                 <div
-                  key={`dispatch-${report.id}`}
-                  className="bg-white rounded-2xl p-4 border-2 border-emerald-400 shadow-xs hover:shadow-md transition-all flex flex-col justify-between gap-3.5 relative overflow-hidden"
+                  key={`pending-${report.id}`}
+                  className="bg-white rounded-xl p-3.5 sm:p-4 border border-gray-200/90 shadow-2xs flex flex-col gap-3 hover:border-[#1A7B88]/40 transition-colors"
                 >
-                  <div className="absolute top-0 right-0 left-0 h-1 bg-emerald-500"></div>
-
-                  <div>
-                    {/* Header info */}
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-10 h-10 rounded-xl bg-[#005253] text-white font-bold flex items-center justify-center text-sm shadow-xs">
-                          {student.initials}
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-sm text-[#111c2d] leading-tight">
+                  {/* Top Row: Student & Teacher & Package */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-[#EAF5F7] text-[#125862] font-bold flex items-center justify-center text-sm shrink-0 border border-[#1A7B88]/20">
+                        {student.initials}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-bold text-sm text-[#1D1D1F] truncate">
                             {student.name}
                           </h4>
-                          <span className="text-[11px] text-[#526060] block mt-0.5">
-                            المعلم: {report.submittedByTeacherName || teacher?.name || 'غير محدد'} ({teacher?.circleName})
+                          <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-bold border border-blue-200/60">
+                            باقة {packageSessions} حصص
                           </span>
                         </div>
+                        <span className="text-xs text-gray-500 block mt-0.5 truncate">
+                          المعلم: {report.submittedByTeacherName || teacher?.name || 'غير محدد'}
+                          {teacher?.circleName ? ` (${teacher.circleName})` : ''}
+                        </span>
                       </div>
+                    </div>
 
-                      <span className="px-2 py-0.5 rounded-full bg-[#dcfce7] text-[#15803d] text-[10px] font-black border border-[#86efac]">
-                        جاهز للإرسال ⭐
+                    {/* Status Badge in Friendly Arabic */}
+                    <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 text-[11px] font-bold border border-amber-200 shrink-0">
+                      بانتظار الاعتماد والإرسال
+                    </span>
+                  </div>
+
+                  {/* Middle Box: Details & Phone */}
+                  <div className="bg-gray-50 rounded-xl p-2.5 sm:p-3 text-xs flex flex-col gap-1.5 border border-gray-100">
+                    <div className="flex items-center justify-between text-gray-700 flex-wrap gap-1">
+                      <span className="font-medium text-gray-600">
+                        تاريخ وصول التقرير: <strong className="font-mono text-gray-900">{report.reportDate}</strong>
+                      </span>
+                      <span className="font-bold px-2 py-0.5 rounded-md bg-white border border-gray-200 text-[#125862]">
+                        التقدير: {report.grade || (report.memorizationScore ? `${report.memorizationScore}%` : 'ممتاز')}
                       </span>
                     </div>
 
-                    {/* Report Summary Details */}
-                    <div className="bg-[#f0f9ff] rounded-xl p-3 text-xs flex flex-col gap-1.5 border border-[#bae6fd]/50">
-                      <div className="flex items-center justify-between text-[#0369a1]">
-                        <span className="font-bold">تاريخ التقرير: {report.reportDate}</span>
-                        <span className="font-black bg-white px-2 py-0.5 rounded-md shadow-2xs">
-                          الدرجة: {report.grade || (report.memorizationScore ? report.memorizationScore + '%' : 'ممتاز')}
-                        </span>
-                      </div>
+                    {(report.memorizationDetails || report.performanceSummary) && (
+                      <p className="text-gray-600 text-xs line-clamp-2 leading-relaxed mt-0.5">
+                        <strong className="text-gray-700">ملخص الإنجاز:</strong>{' '}
+                        {report.memorizationDetails || report.performanceSummary}
+                      </p>
+                    )}
 
-                      <div className="text-[#334155] mt-1">
-                        <span className="text-[10px] text-gray-500 block">إنجاز الـ 8 حصص:</span>
-                        <p className="font-semibold text-xs line-clamp-2 leading-relaxed">
-                          {report.memorizationDetails || report.performanceSummary}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-1 border-t border-[#bae6fd]/40 text-[11px] text-gray-600">
-                        <span>هاتف ولي الأمر:</span>
-                        <a
-                          href={getParentWhatsAppUrl(student.parentPhone, student.name)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[#128C7E] hover:text-[#075E54] font-mono font-bold dir-ltr hover:underline"
-                          title="محادثة ولي الأمر مباشرة عبر واتساب"
-                        >
-                          <span className="material-symbols-outlined text-xs text-[#25D366]">chat</span>
-                          <span>{student.parentPhone}</span>
-                        </a>
-                      </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-gray-200/60 text-xs">
+                      <span className="text-gray-500">هاتف ولي الأمر:</span>
+                      <span className="font-mono font-bold text-gray-800 dir-ltr">
+                        {student.parentPhone || 'غير مسجل'}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Actions: Download PDF + Send via WhatsApp + Mark as Sent */}
-                  <div className="flex flex-col gap-2 pt-1 border-t border-gray-100">
-                    <div className="flex items-center gap-2">
-                      {/* Button 1: تحميل تقرير PDF */}
-                      <button
-                        type="button"
-                        onClick={() => handleDownloadPdf(student, report)}
-                        className="flex-1 py-2 px-2.5 rounded-xl bg-white border border-[#005253]/30 text-[#005253] hover:bg-[#005253]/10 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-                        title="معاينة وتحميل التقرير كملف PDF رسمي مخصص للطباعة"
-                      >
-                        <span className="material-symbols-outlined text-base">picture_as_pdf</span>
-                        <span>تحميل تقرير PDF</span>
-                      </button>
+                  {/* Actions Grid: PDF Preview + Send WhatsApp + Mark as Sent + Quick Reminder */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+                    {/* 1. PDF Preview & Download */}
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadPdf(student, report)}
+                      className="min-h-[44px] flex-1 py-2 px-3 rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-[#125862] font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      title="معاينة وتحميل التقرير بصيغة PDF"
+                    >
+                      <span className="material-symbols-outlined text-base text-[#1A7B88]">picture_as_pdf</span>
+                      <span>معاينة PDF</span>
+                    </button>
 
-                      {/* Button 2: إرسال لولي الأمر (واتساب) */}
-                      <a
-                        href={parentWhatsAppUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 py-2 px-2.5 rounded-xl bg-[#25D366] hover:bg-[#1eb757] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
-                        title="فتح واتساب بمحادثة جاهزة لتهنئة ولي الأمر وإرفاق التقرير"
-                      >
-                        <span className="material-symbols-outlined text-base">chat</span>
-                        <span>إرسال واتساب</span>
-                      </a>
-                    </div>
+                    {/* 2. Open WhatsApp for Parent (Does NOT automatically mark as sent) */}
+                    <a
+                      href={parentWhatsAppUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="min-h-[44px] flex-1 py-2 px-3 rounded-xl bg-[#25D366] hover:bg-[#1eb757] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-2xs"
+                      title="فتح محادثة واتساب لإرسال التقرير لولي الأمر"
+                    >
+                      <span className="material-symbols-outlined text-base">chat</span>
+                      <span>إرسال واتساب</span>
+                    </a>
 
-                    {/* Button 3: تم الإرسال لولي الأمر */}
+                    {/* 3. Confirm Sent to Parent (Strict manual confirmation) */}
                     <button
                       type="button"
                       onClick={() => handleMarkAsSent(report.id, student.name)}
-                      className="w-full py-2 px-3 rounded-xl bg-[#005253] hover:bg-[#003d3e] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                      className="min-h-[44px] flex-1 py-2 px-3 rounded-xl bg-[#1A7B88] hover:bg-[#125862] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                      title="تأكيد اعتماد التقرير ونقله إلى الأرشيف المكتمل"
                     >
-                      <span className="material-symbols-outlined text-base">check_circle</span>
-                      <span>تم الإرسال لولي الأمر (نقل للأرشيف المكتمل)</span>
+                      <span className="material-symbols-outlined text-base">done_all</span>
+                      <span>تأكيد الإرسال</span>
+                    </button>
+
+                    {/* 4. Quick Teacher Reminder via WhatsApp Modal */}
+                    <button
+                      type="button"
+                      onClick={() => setReminderTarget({ teacher, student, report })}
+                      className="min-h-[44px] px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200/80 text-amber-900 font-bold text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                      title="إرسال تذكير سريع للمعلم عبر واتساب"
+                    >
+                      <span className="material-symbols-outlined text-base text-amber-600">notifications_active</span>
+                      <span>تذكير المعلم</span>
                     </button>
                   </div>
                 </div>
@@ -455,176 +433,481 @@ export const ManagerView: React.FC<ManagerViewProps> = () => {
         )}
       </section>
 
-      {/* SECTION 2: CHARTS & FINANCIAL VISUAL COMPARISON */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Chart 1: Revenue vs Teacher Costs Over 6 Months */}
-        <div className="lg:col-span-2 bg-white p-5 sm:p-6 rounded-3xl shadow-xs border border-[#bec8c8]/25 flex flex-col justify-between gap-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* SECTION 2: الملخص المالي (Compact & Transparent) */}
+      <section className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200/80 shadow-2xs flex flex-col gap-4">
+        {/* Financial Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-100">
+          <div className="flex items-center gap-2.5">
+            <span className="w-9 h-9 rounded-xl bg-[#EAF5F7] text-[#125862] flex items-center justify-center shrink-0 border border-[#1A7B88]/20">
+              <span className="material-symbols-outlined text-xl">account_balance_wallet</span>
+            </span>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-6 bg-[#005253] rounded-full"></span>
-                <h3 className="text-base sm:text-lg font-bold text-[#111c2d]">
-                  مؤشر الإيرادات ومصروفات المعلمين (آخر 6 أشهر)
-                </h3>
+              <h2 className="text-base sm:text-lg font-bold text-[#1D1D1F]">
+                الملخص المالي
+              </h2>
+              <p className="text-xs text-gray-500 mt-0.5">
+                مؤشرات الرقابة المالية التقديرية للشهر الحالي ({currentMonthName})
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleExportBudget}
+            className="min-h-[40px] px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-[#EAF5F7] border border-gray-200 text-[#125862] text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+            title="تصدير كشف الميزانية المالية بصيغة CSV"
+          >
+            <span className="material-symbols-outlined text-sm">download</span>
+            <span>تصدير الميزانية CSV</span>
+          </button>
+        </div>
+
+        {/* Financial Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          {/* Card 1: Total Registered Subscriptions */}
+          <div className="bg-[#F5F5F7]/80 rounded-xl p-4 border border-gray-200/70 flex flex-col justify-between gap-3">
+            <div className="flex items-start justify-between">
+              <span className="text-xs font-bold text-gray-600">
+                إجمالي الاشتراكات المسجلة
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                {activeStudentsCount} اشتراك نشط
+              </span>
+            </div>
+            <div>
+              <div className="text-2xl font-black text-[#1D1D1F] tracking-tight">
+                {totalSubscriptions.toLocaleString()}{' '}
+                <span className="text-xs font-bold text-gray-500">ر.س</span>
               </div>
-              <p className="text-xs text-[#526060] pr-4 mt-0.5">
-                مقارنة بصرية دقيقة بين مدفوعات الطلاب ورواتب الكادر وصافي الأرباح
+              <p className="text-[11px] text-gray-500 mt-1 leading-normal">
+                الفترة: <strong>الشهر الحالي</strong> · تمثل رسوم الاشتراكات التعاقدية للطلاب النشطين (قيد مسجل بالنظام وليست مبالغ محصّلة نقدياً مثبتة).
+              </p>
+            </div>
+          </div>
+
+          {/* Card 2: Teacher Costs for Registered Students */}
+          <div className="bg-[#F5F5F7]/80 rounded-xl p-4 border border-gray-200/70 flex flex-col justify-between gap-3">
+            <div className="flex items-start justify-between">
+              <span className="text-xs font-bold text-gray-600">
+                مستحقات المعلمين عن الطلاب
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold">
+                {teachers.length} معلماً
+              </span>
+            </div>
+            <div>
+              <div className="text-2xl font-black text-[#1D1D1F] tracking-tight">
+                {totalTeacherCosts.toLocaleString()}{' '}
+                <span className="text-xs font-bold text-gray-500">ر.س</span>
+              </div>
+              <p className="text-[11px] text-gray-500 mt-1 leading-normal">
+                الفترة: <strong>الشهر الحالي</strong> · تمثل مستحقات الحصص المخصصة للطلاب النشطين (مجموع مصروفات الطلاب). ملاحظة: تختلف عن رواتب المعلمين الثابتة التقديرية (3,950 ر.س/شهرياً) المحددة بملفاتهم.
+              </p>
+            </div>
+          </div>
+
+          {/* Card 3: Estimated Operating Balance */}
+          <div className="bg-[#F5F5F7]/80 rounded-xl p-4 border border-gray-200/70 flex flex-col justify-between gap-3">
+            <div className="flex items-start justify-between">
+              <span className="text-xs font-bold text-gray-600">
+                الفارق التقديري التشغيلي
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
+                هامش {profitMargin}%
+              </span>
+            </div>
+            <div>
+              <div className="text-2xl font-black text-[#125862] tracking-tight">
+                {netProfit.toLocaleString()}{' '}
+                <span className="text-xs font-bold text-gray-500">ر.س</span>
+              </div>
+              <p className="text-[11px] text-gray-500 mt-1 leading-normal">
+                الفترة: <strong>الشهر الحالي</strong> · الفارق الحسابي التقديري بين الاشتراكات المقيدة ومستحقات حصص المعلمين، قبل احتساب أي نفقات تشغيلية إضافية.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 3: ملخص الأكاديمية (Direct Academy Summary & Navigation) */}
+      <section className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200/80 shadow-2xs flex flex-col gap-4">
+        {/* Section Header */}
+        <div className="flex items-center gap-2.5 pb-3 border-b border-gray-100">
+          <span className="w-9 h-9 rounded-xl bg-[#EAF5F7] text-[#125862] flex items-center justify-center shrink-0 border border-[#1A7B88]/20">
+            <span className="material-symbols-outlined text-xl">hub</span>
+          </span>
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-[#1D1D1F]">
+              ملخص الأكاديمية
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              الأعداد الفعلية المسجلة حالياً في النظام وروابط الوصول السريع
+            </p>
+          </div>
+        </div>
+
+        {/* Summary Metric Cards with Navigation Links */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          {/* Card 1: Students */}
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200/70 flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-xl text-[#1A7B88]">school</span>
+                <span className="font-bold text-xs text-gray-700">الطلاب المسجلون</span>
+              </div>
+              <span className="text-xl font-bold font-mono text-[#1D1D1F]">
+                {students.length}
+              </span>
+            </div>
+            <div className="text-xs text-gray-500 leading-relaxed">
+              <span>{activeStudentsCount} نشط ومنتظم</span>
+              <span className="mx-1">·</span>
+              <span>{vacationStudentsCount} في إجازة</span>
+              <span className="mx-1">·</span>
+              <span className="text-rose-600 font-bold">{overdueStudentsCount} بحاجة متابعة</span>
+            </div>
+            {onNavigateTab && (
+              <button
+                type="button"
+                onClick={() => onNavigateTab('students')}
+                className="min-h-[44px] w-full mt-1 py-2 px-3 rounded-lg bg-white border border-gray-200 hover:border-[#1A7B88] text-[#125862] hover:bg-[#EAF5F7] font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <span>الانتقال لشاشة الطلاب</span>
+                <span className="material-symbols-outlined text-base">chevron_left</span>
+              </button>
+            )}
+          </div>
+
+          {/* Card 2: Teachers */}
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200/70 flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-xl text-[#1A7B88]">badge</span>
+                <span className="font-bold text-xs text-gray-700">المعلمون والمحفظون</span>
+              </div>
+              <span className="text-xl font-bold font-mono text-[#1D1D1F]">
+                {teachers.length}
+              </span>
+            </div>
+            <div className="text-xs text-gray-500 leading-relaxed">
+              <span>كادر التدريس القرآني المعتمد والمشرف على الحلقات التعليمية</span>
+            </div>
+            {onNavigateTab && (
+              <button
+                type="button"
+                onClick={() => onNavigateTab('teachers')}
+                className="min-h-[44px] w-full mt-1 py-2 px-3 rounded-lg bg-white border border-gray-200 hover:border-[#1A7B88] text-[#125862] hover:bg-[#EAF5F7] font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <span>الانتقال لشاشة المعلمين</span>
+                <span className="material-symbols-outlined text-base">chevron_left</span>
+              </button>
+            )}
+          </div>
+
+          {/* Card 3: Reports */}
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200/70 flex flex-col justify-between gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-xl text-[#1A7B88]">description</span>
+                <span className="font-bold text-xs text-gray-700">سجل التقارير</span>
+              </div>
+              <span className="text-xl font-bold font-mono text-[#1D1D1F]">
+                {reports.length}
+              </span>
+            </div>
+            <div className="text-xs text-gray-500 leading-relaxed">
+              <span>{completedDispatchReports.length} تقرير معتمد ومرسل</span>
+              <span className="mx-1">·</span>
+              <span className="text-amber-700 font-bold">{pendingDispatchReports.length} بانتظار الإجراء</span>
+            </div>
+            {onNavigateTab && (
+              <button
+                type="button"
+                onClick={() => onNavigateTab('reports')}
+                className="min-h-[44px] w-full mt-1 py-2 px-3 rounded-lg bg-white border border-gray-200 hover:border-[#1A7B88] text-[#125862] hover:bg-[#EAF5F7] font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <span>الانتقال لشاشة التقارير</span>
+                <span className="material-symbols-outlined text-base">chevron_left</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 4: إحصائيات سريعة ورسم بياني للنمو بواسطة Recharts */}
+      <ManagerQuickStatsChart />
+
+      {/* QUICK TEACHER REMINDER MODAL */}
+      {reminderTarget && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 border border-gray-200 shadow-xl flex flex-col gap-4 text-right animate-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200">
+                <span className="material-symbols-outlined text-xl">notifications_active</span>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-[#1D1D1F]">
+                  إرسال تذكير سريع للمعلم
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  حلقة الطالب: {reminderTarget.student.name}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-xl p-3.5 text-xs text-gray-700 leading-relaxed border border-gray-200/70">
+              <div className="font-bold text-[#125862] mb-1">
+                المعلم: {reminderTarget.teacher?.name || 'غير محدد'} ({reminderTarget.teacher?.phone || 'لا يوجد هاتف مسجل'})
+              </div>
+              <p className="text-gray-600 mt-1">
+                سيتم فتح محادثة واتساب جاهزة تتضمن تذكيراً لطيفاً للمعلم برفع تقرير دورة الطالب بارك الله في جهوده.
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
               <button
-                onClick={handleExportBudget}
-                className="px-3 py-1.5 rounded-xl bg-[#f0f3ff] text-[#005253] hover:bg-[#e7eeff] text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer border border-[#bec8c8]/20"
+                type="button"
+                onClick={() => setReminderTarget(null)}
+                className="min-h-[44px] px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 text-xs font-bold transition-colors cursor-pointer"
               >
-                <span className="material-symbols-outlined text-sm">download</span>
-                <span>تصدير الميزانية CSV</span>
+                إلغاء
+              </button>
+              <a
+                href={getTeacherReminderWhatsAppUrl(
+                  reminderTarget.teacher?.phone || '',
+                  reminderTarget.student.name,
+                  reminderTarget.teacher?.name
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setReminderTarget(null)}
+                className="min-h-[44px] px-5 py-2 rounded-xl bg-[#25D366] hover:bg-[#1eb757] text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs"
+              >
+                <span className="material-symbols-outlined text-base">chat</span>
+                <span>فتح واتساب وإرسال التذكير</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MOBILE ACADEMY NAVIGATION MODAL */}
+      {isAcademyModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-end sm:items-center justify-center p-3 sm:p-4"
+          onClick={() => setIsAcademyModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-3xl max-w-sm w-full p-5 border border-gray-200 shadow-2xl flex flex-col gap-4 text-right animate-in slide-in-from-bottom duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-xl bg-[#EAF5F7] text-[#125862] flex items-center justify-center">
+                  <span className="material-symbols-outlined text-lg">school</span>
+                </span>
+                <h3 className="font-bold text-base text-[#1D1D1F]">الأكاديمية</h3>
+              </div>
+              <button
+                onClick={() => setIsAcademyModalOpen(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700"
+              >
+                <span className="material-symbols-outlined text-lg">close</span>
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  setIsAcademyModalOpen(false);
+                  if (onNavigateTab) onNavigateTab('students');
+                }}
+                className="min-h-[48px] p-3 rounded-2xl bg-gray-50 hover:bg-[#EAF5F7] text-right flex items-center justify-between border border-gray-200/70 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="material-symbols-outlined text-xl text-[#1A7B88]">school</span>
+                  <div>
+                    <span className="font-bold text-sm text-[#1D1D1F] block">شاشة الطلاب</span>
+                    <span className="text-[11px] text-gray-500">{students.length} طالباً مسجلاً</span>
+                  </div>
+                </div>
+                <span className="material-symbols-outlined text-gray-400 text-lg">chevron_left</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsAcademyModalOpen(false);
+                  if (onNavigateTab) onNavigateTab('teachers');
+                }}
+                className="min-h-[48px] p-3 rounded-2xl bg-gray-50 hover:bg-[#EAF5F7] text-right flex items-center justify-between border border-gray-200/70 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="material-symbols-outlined text-xl text-[#1A7B88]">badge</span>
+                  <div>
+                    <span className="font-bold text-sm text-[#1D1D1F] block">شاشة المعلمين</span>
+                    <span className="text-[11px] text-gray-500">{teachers.length} معلماً ومحفظاً</span>
+                  </div>
+                </div>
+                <span className="material-symbols-outlined text-gray-400 text-lg">chevron_left</span>
               </button>
             </div>
           </div>
-
-          {/* Chart Legend */}
-          <div className="flex items-center gap-5 text-xs text-[#3f4949] flex-wrap pr-4">
-            <div className="flex items-center gap-2">
-              <span className="w-3.5 h-3.5 rounded bg-[#005253]"></span>
-              <span className="font-semibold">إجمالي الاشتراكات</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3.5 h-3.5 rounded bg-[#cfdaf2]"></span>
-              <span className="font-semibold">مصروفات المعلمين</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-5 h-1 border-b-2 border-dashed border-[#7d5800]"></span>
-              <span className="font-semibold">صافي الربح الشهري</span>
-            </div>
-          </div>
-
-          {/* Responsive Live Financial Chart */}
-          {totalSubscriptions === 0 && totalTeacherCosts === 0 ? (
-            <div className="w-full h-56 rounded-2xl bg-[#f0f3ff]/60 border-2 border-dashed border-[#bec8c8]/30 flex flex-col items-center justify-center text-center p-6 gap-2">
-              <span className="material-symbols-outlined text-4xl text-[#005253]/40">
-                analytics
-              </span>
-              <h4 className="text-sm font-bold text-[#111c2d]">
-                لا توجد بيانات مالية مسجلة بعد
-              </h4>
-              <p className="text-xs text-[#6f7979] max-w-sm">
-                سيتم بناء الرسم البياني والمؤشرات تلقائياً فور تسجيل أول اشتراك فعلي أو اعتماد رواتب المعلمين.
-              </p>
-            </div>
-          ) : (
-            <div className="w-full overflow-x-auto pt-2">
-              <div className="min-w-[450px] h-56 flex flex-col justify-between py-2 relative">
-                <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 600 200">
-                  <line className="text-[#e7eeff]" stroke="currentColor" strokeDasharray="4 4" x1="0" x2="600" y1="20" y2="20" />
-                  <line className="text-[#e7eeff]" stroke="currentColor" strokeDasharray="4 4" x1="0" x2="600" y1="80" y2="80" />
-                  <line className="text-[#e7eeff]" stroke="currentColor" strokeDasharray="4 4" x1="0" x2="600" y1="140" y2="140" />
-                  <line className="text-[#bec8c8]/40" stroke="currentColor" x1="0" x2="600" y1="175" y2="175" />
-
-                  {/* Single live period representation */}
-                  <g transform="translate(230, 0)">
-                    {/* Subscriptions Bar */}
-                    <rect
-                      className="fill-[#005253] hover:opacity-85 transition-opacity"
-                      height={Math.min(130, Math.max(10, (totalSubscriptions / (Math.max(totalSubscriptions, totalTeacherCosts) || 1)) * 130))}
-                      rx="6"
-                      width="35"
-                      x="0"
-                      y={175 - Math.min(130, Math.max(10, (totalSubscriptions / (Math.max(totalSubscriptions, totalTeacherCosts) || 1)) * 130))}
-                    />
-                    {/* Costs Bar */}
-                    <rect
-                      className="fill-[#cfdaf2] hover:opacity-85 transition-opacity"
-                      height={Math.min(130, Math.max(10, (totalTeacherCosts / (Math.max(totalSubscriptions, totalTeacherCosts) || 1)) * 130))}
-                      rx="6"
-                      width="35"
-                      x="45"
-                      y={175 - Math.min(130, Math.max(10, (totalTeacherCosts / (Math.max(totalSubscriptions, totalTeacherCosts) || 1)) * 130))}
-                    />
-                  </g>
-
-                  <text className="text-[#005253] font-bold text-xs" fill="currentColor" textAnchor="middle" x="270" y="195">
-                    الفترة الحالية الفعلية
-                  </text>
-                </svg>
-              </div>
-            </div>
-          )}
         </div>
+      )}
 
-        {/* Chart 2: Students Attendance & Status Ratio Donut/Bars */}
-        <div className="bg-white p-5 sm:p-6 rounded-3xl shadow-xs border border-[#bec8c8]/25 flex flex-col justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-6 bg-[#0284c7] rounded-full"></span>
-              <h3 className="text-base sm:text-lg font-bold text-[#111c2d]">
-                نسبة الطلاب النشطين والمتأخرين
-              </h3>
-            </div>
-            <p className="text-xs text-[#526060] pr-4 mt-0.5">
-              توزيع حالات الطلاب في الحلقات القرآنية
-            </p>
-          </div>
-
-          {/* Visual Progress Breakdown */}
-          <div className="flex flex-col gap-4 py-2">
-            {/* Active Regular */}
-            <div>
-              <div className="flex items-center justify-between text-xs font-bold mb-1">
-                <span className="flex items-center gap-1.5 text-[#15803d]">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#15803d]"></span>
-                  <span>نشطين ومنتظمين ({activeStudentsCount} طالباً)</span>
+      {/* MOBILE MORE NAVIGATION MODAL */}
+      {isMoreModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-end sm:items-center justify-center p-3 sm:p-4"
+          onClick={() => setIsMoreModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-3xl max-w-sm w-full p-5 border border-gray-200 shadow-2xl flex flex-col gap-4 text-right animate-in slide-in-from-bottom duration-200 max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <span className="w-8 h-8 rounded-xl bg-[#EAF5F7] text-[#125862] flex items-center justify-center">
+                  <span className="material-symbols-outlined text-lg">more_horiz</span>
                 </span>
-                <span className="font-mono">{activePercent}%</span>
+                <h3 className="font-bold text-base text-[#1D1D1F]">المزيد من الخيارات</h3>
               </div>
-              <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
-                <div className="bg-[#15803d] h-full rounded-full transition-all duration-500" style={{ width: `${activePercent}%` }}></div>
-              </div>
+              <button
+                onClick={() => setIsMoreModalOpen(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700"
+              >
+                <span className="material-symbols-outlined text-lg">close</span>
+              </button>
             </div>
 
-            {/* Warning / Overdue */}
-            <div>
-              <div className="flex items-center justify-between text-xs font-bold mb-1">
-                <span className="flex items-center gap-1.5 text-[#ba1a1a]">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#ba1a1a]"></span>
-                  <span>متأخرين وبحاجة متابعة ({overdueStudentsCount} طالباً)</span>
-                </span>
-                <span className="font-mono">{overduePercent}%</span>
-              </div>
-              <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
-                <div className="bg-[#ba1a1a] h-full rounded-full transition-all duration-500" style={{ width: `${overduePercent}%` }}></div>
-              </div>
-            </div>
+            <div className="flex flex-col gap-1.5 text-xs font-semibold">
+              {/* Activity Log */}
+              <button
+                onClick={() => {
+                  setIsMoreModalOpen(false);
+                  if (onOpenActivityLog) onOpenActivityLog();
+                }}
+                className="min-h-[44px] px-3.5 py-2.5 rounded-xl hover:bg-gray-50 flex items-center gap-3 text-gray-700 cursor-pointer text-right"
+              >
+                <span className="material-symbols-outlined text-lg text-[#1A7B88]">history</span>
+                <span>سجل العمليات الإدارية</span>
+              </button>
 
-            {/* On Vacation */}
-            <div>
-              <div className="flex items-center justify-between text-xs font-bold mb-1">
-                <span className="flex items-center gap-1.5 text-[#7d5800]">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#ca8a04]"></span>
-                  <span>في إجازة رسمية ({vacationStudentsCount} طالباً)</span>
-                </span>
-                <span className="font-mono">{vacationPercent}%</span>
-              </div>
-              <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
-                <div className="bg-[#ca8a04] h-full rounded-full transition-all duration-500" style={{ width: `${vacationPercent}%` }}></div>
-              </div>
-            </div>
-          </div>
+              {/* Export Students */}
+              <button
+                onClick={() => {
+                  setIsMoreModalOpen(false);
+                  exportToExcel(students);
+                }}
+                className="min-h-[44px] px-3.5 py-2.5 rounded-xl hover:bg-gray-50 flex items-center gap-3 text-gray-700 cursor-pointer text-right"
+              >
+                <span className="material-symbols-outlined text-lg text-emerald-600">table_view</span>
+                <span>تصدير بيانات الأكاديمية (Excel)</span>
+              </button>
 
-          {/* Quick Metrics Summary */}
-          <div className="bg-[#f0f3ff] rounded-2xl p-3 border border-[#bec8c8]/20 flex flex-col gap-2 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-[#6f7979]">متوسط اشتراك الطالب:</span>
-              <span className="font-bold text-[#005253] font-mono">{avgSubscription} ر.س</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[#6f7979]">نسبة تغطية الإيرادات للمصروفات:</span>
-              <span className="font-bold text-[#7d5800] font-mono">{coverageRatio}%</span>
+              {/* Export Budget */}
+              <button
+                onClick={() => {
+                  setIsMoreModalOpen(false);
+                  handleExportBudget();
+                }}
+                className="min-h-[44px] px-3.5 py-2.5 rounded-xl hover:bg-gray-50 flex items-center gap-3 text-gray-700 cursor-pointer text-right"
+              >
+                <span className="material-symbols-outlined text-lg text-blue-600">payments</span>
+                <span>تصدير كشف الميزانية (CSV)</span>
+              </button>
+
+              {/* PWA Install */}
+              <div className="py-1">
+                <PWAInstallButton variant="sidebar" />
+              </div>
+
+              {/* Preview Roles for SuperAdmin */}
+              {isSuperAdmin && (
+                <div className="pt-2 border-t border-gray-100 flex flex-col gap-1">
+                  <span className="text-[11px] font-bold text-gray-400 px-3">معاينة الأدوار</span>
+                  <div className="grid grid-cols-3 gap-1">
+                    <button
+                      onClick={() => {
+                        setIsMoreModalOpen(false);
+                        setPreviewRole('teacher');
+                      }}
+                      className={`min-h-[38px] px-2 py-1 rounded-lg text-xs font-bold text-center cursor-pointer ${
+                        previewRole === 'teacher'
+                          ? 'bg-[#1A7B88] text-white'
+                          : 'bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      المعلم
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsMoreModalOpen(false);
+                        setPreviewRole('sub_supervisor');
+                      }}
+                      className={`min-h-[38px] px-2 py-1 rounded-lg text-xs font-bold text-center cursor-pointer ${
+                        previewRole === 'sub_supervisor'
+                          ? 'bg-[#1A7B88] text-white'
+                          : 'bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      المشرف
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsMoreModalOpen(false);
+                        setPreviewRole(null);
+                      }}
+                      className={`min-h-[38px] px-2 py-1 rounded-lg text-xs font-bold text-center cursor-pointer ${
+                        previewRole === null
+                          ? 'bg-[#1A7B88] text-white'
+                          : 'bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      المدير
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Refresh Supabase */}
+              <button
+                onClick={() => {
+                  fetchFromSupabase();
+                  setIsMoreModalOpen(false);
+                }}
+                className="min-h-[44px] px-3.5 py-2.5 rounded-xl hover:bg-gray-50 flex items-center gap-3 text-gray-700 cursor-pointer text-right"
+              >
+                <span className="material-symbols-outlined text-lg text-gray-400">sync</span>
+                <span>تحديث البيانات من السيرفر</span>
+              </button>
+
+              {/* Logout */}
+              <div className="pt-2 border-t border-gray-100">
+                <button
+                  onClick={() => {
+                    setIsMoreModalOpen(false);
+                    logout();
+                  }}
+                  className="min-h-[44px] w-full px-3.5 py-2 rounded-xl bg-rose-50 text-rose-700 font-bold text-xs flex items-center justify-between cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-base">logout</span>
+                    <span>تسجيل الخروج</span>
+                  </div>
+                  <span className="text-[10px] text-rose-400">إنهاء الجلسة</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
+      {/* MOBILE BOTTOM NAVIGATION: 4 Unified Sections */}
+      <ManagerBottomNav
+        activeTab="overview"
+        onChangeTab={handleBottomNavChange}
+        pendingReportsCount={pendingDispatchReports.length}
+      />
     </div>
   );
 };

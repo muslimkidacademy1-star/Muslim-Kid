@@ -85,14 +85,16 @@ export const Header: React.FC<HeaderProps> = ({
     };
   }, [isTeacherAccountOpen]);
 
-  // Dedicated Minimalist Clean Header for Teacher, Sub-Supervisor, and General Supervisor Portals (Mobile First)
+  // Dedicated Minimalist Clean Header for Manager, Teacher, Sub-Supervisor, and General Supervisor Portals (Mobile First)
   if (
     currentUser.role === 'teacher' ||
     currentUser.role === 'sub_supervisor' ||
-    currentUser.role === 'general_supervisor'
+    currentUser.role === 'general_supervisor' ||
+    currentUser.role === 'manager'
   ) {
     const isTeacherRole = currentUser.role === 'teacher';
     const isGeneralSupervisorRole = currentUser.role === 'general_supervisor';
+    const isManagerRole = currentUser.role === 'manager';
     const teacherObj = teachers.find(
       (t) => t.id === currentUser.teacherId || t.name === currentUser.name || t.id === currentUser.id
     );
@@ -127,7 +129,9 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setIsTeacherAccountOpen(!isTeacherAccountOpen)}
             className="min-h-[44px] min-w-[44px] px-2.5 py-1.5 rounded-xl bg-gray-50 hover:bg-[#EAF5F7] border border-gray-200/80 text-[#125862] transition-colors flex items-center gap-2 cursor-pointer shadow-2xs active:scale-98"
             aria-label={
-              isTeacherRole
+              isManagerRole
+                ? 'حساب المدير العام'
+                : isTeacherRole
                 ? 'حساب المعلم'
                 : isGeneralSupervisorRole
                 ? 'حساب المشرف العام'
@@ -158,7 +162,9 @@ export const Header: React.FC<HeaderProps> = ({
                   <span className="text-[11px] text-gray-500 font-medium block">أهلًا بك</span>
                   <h4 className="font-bold text-sm text-gray-900 truncate">{currentUser.name}</h4>
                   <span className="inline-block mt-0.5 text-xs text-[#1A7B88] font-semibold truncate">
-                    {isTeacherRole
+                    {isManagerRole
+                      ? currentUser.title || 'المدير العام للأكاديمية'
+                      : isTeacherRole
                       ? circleName
                       : isGeneralSupervisorRole
                       ? currentUser.title || 'المشرف العام للأكاديمية'

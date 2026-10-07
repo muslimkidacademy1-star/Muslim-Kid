@@ -6,6 +6,7 @@ import { SuperAdminViewBar } from './components/common/SuperAdminViewBar';
 import { GeneralSupervisorView } from './components/dashboard/GeneralSupervisorView';
 import { EducationalSupervisorView } from './components/dashboard/EducationalSupervisorView';
 import { ManagerView } from './components/dashboard/ManagerView';
+import { ManagerBottomNav, ManagerTab } from './components/dashboard/ManagerBottomNav';
 import { TeacherView } from './components/dashboard/TeacherView';
 import { TeachersListView } from './components/views/TeachersListView';
 import { ReportsListView } from './components/views/ReportsListView';
@@ -117,6 +118,8 @@ function AuthenticatedApp() {
           onEditStudent={handleOpenEdit}
           onAddReport={handleOpenReport}
           onManageVacation={handleOpenVacation}
+          onNavigateTab={(tab) => setActiveTab(tab)}
+          onOpenActivityLog={handleOpenActivityLog}
         />
       );
     }
@@ -169,7 +172,7 @@ function AuthenticatedApp() {
           isSuperAdmin
             ? 'pt-24 lg:pt-20'
             : 'pt-18 lg:pt-16'
-        } pb-16 px-3.5 sm:px-6 lg:px-8 lg:mr-72 transition-all duration-300`}
+        } pb-28 sm:pb-16 px-3.5 sm:px-6 lg:px-8 lg:mr-72 transition-all duration-300`}
       >
         <div className="max-w-7xl mx-auto">{renderMainContent()}</div>
       </main>
@@ -202,6 +205,30 @@ function AuthenticatedApp() {
         isOpen={isActivityLogOpen}
         onClose={() => setIsActivityLogOpen(false)}
       />
+
+      {/* Mobile Bottom Navigation for Manager on Sub-screens (Reports, Students, Teachers) */}
+      {currentUser.role === 'manager' && activeTab !== 'dashboard' && (
+        <ManagerBottomNav
+          activeTab={
+            activeTab === 'reports'
+              ? 'reports'
+              : activeTab === 'students' || activeTab === 'teachers'
+              ? 'academy'
+              : 'more'
+          }
+          onChangeTab={(tab: ManagerTab) => {
+            if (tab === 'overview') {
+              setActiveTab('dashboard');
+            } else if (tab === 'reports') {
+              setActiveTab('reports');
+            } else if (tab === 'academy') {
+              setActiveTab(activeTab === 'students' ? 'teachers' : 'students');
+            } else if (tab === 'more') {
+              setIsActivityLogOpen(true);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

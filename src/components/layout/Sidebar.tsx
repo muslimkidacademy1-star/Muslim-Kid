@@ -33,13 +33,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'students' as NavigationTab, label: 'طلابي (حلقة القرآن)', icon: 'school' },
         { id: 'reports' as NavigationTab, label: 'شاشة التقارير', icon: 'monitoring' },
       ]
+    : currentUser.role === 'manager'
+    ? [
+        { id: 'dashboard' as NavigationTab, label: 'الرئيسية', icon: 'dashboard' },
+        { id: 'reports' as NavigationTab, label: 'التقارير', icon: 'description' },
+        { id: 'students' as NavigationTab, label: 'شاشة الطلاب', icon: 'school' },
+        { id: 'teachers' as NavigationTab, label: 'شاشة المعلمين', icon: 'badge' },
+        { id: 'logs' as NavigationTab, label: 'سجل العمليات', icon: 'history' },
+      ]
     : [
         {
           id: 'dashboard' as NavigationTab,
           label:
-            currentUser.role === 'manager'
-              ? 'لوحة التحكم التنفيذية'
-              : currentUser.role === 'general_supervisor'
+            currentUser.role === 'general_supervisor'
               ? 'لوحة الإشراف العام'
               : 'المتابعة اليومية',
           icon: 'dashboard',
