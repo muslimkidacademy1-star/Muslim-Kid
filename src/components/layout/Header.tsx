@@ -90,7 +90,8 @@ export const Header: React.FC<HeaderProps> = ({
     currentUser.role === 'teacher' ||
     currentUser.role === 'sub_supervisor' ||
     currentUser.role === 'general_supervisor' ||
-    currentUser.role === 'manager'
+    currentUser.role === 'manager' ||
+    currentUser.role === 'system_admin'
   ) {
     const isTeacherRole = currentUser.role === 'teacher';
     const isGeneralSupervisorRole = currentUser.role === 'general_supervisor';

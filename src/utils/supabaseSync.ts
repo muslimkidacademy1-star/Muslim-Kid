@@ -127,6 +127,7 @@ export function supabaseRowToTeacher(row: any): Teacher {
     initials,
     status: 'active',
     phone: row.phone || '',
+    email: row.email || '',
     notes: row.notes || '',
   };
 }
@@ -139,21 +140,56 @@ export function supervisorToSupabaseRow(s: Supervisor) {
     id,
     name: s.name,
     role: s.role,
+    email: s.email,
   };
 }
 
 // Convert Supabase row to app Supervisor
 export function supabaseRowToSupervisor(row: any): Supervisor {
   const initialChar = row.name ? row.name.trim().charAt(0) : 'م';
+  const role: UserRole =
+    row.role === 'system_admin'
+      ? 'system_admin'
+      : row.role === 'manager'
+      ? 'manager'
+      : row.role === 'sub_supervisor'
+      ? 'sub_supervisor'
+      : row.role === 'teacher'
+      ? 'teacher'
+      : 'general_supervisor';
+
   return {
     id: row.id,
     name: row.name || 'مشرف',
-    role: row.role || 'general_supervisor',
-    title: row.role === 'manager' ? 'المدير العام' : row.role === 'sub_supervisor' ? 'مشرف تعليمي' : 'المشرف العام',
-    roleLabel: row.role === 'manager' ? 'الإدارة العامة والمالية' : row.role === 'sub_supervisor' ? 'إشراف ميداني' : 'الإشراف العام',
-    department: 'الشؤون التعليمية',
+    role,
+    title:
+      role === 'system_admin'
+        ? 'مسؤول النظام'
+        : role === 'manager'
+        ? 'المدير العام للأكاديمية'
+        : role === 'sub_supervisor'
+        ? 'المشرف التعليمي'
+        : role === 'teacher'
+        ? 'معلم حلقة'
+        : 'المشرف العام',
+    roleLabel:
+      role === 'system_admin'
+        ? 'مسؤول النظام وصاحب المنظومة'
+        : role === 'manager'
+        ? 'الإدارة العامة والمالية'
+        : role === 'sub_supervisor'
+        ? 'الإشراف الميداني'
+        : role === 'teacher'
+        ? 'معلم حلقة'
+        : 'الإشراف الأكاديمي العام',
+    department:
+      role === 'system_admin'
+        ? 'إدارة النظام والتقنية'
+        : role === 'manager'
+        ? 'مجلس الإدارة والرقابة المالية'
+        : 'الشؤون التعليمية',
     initials: initialChar,
-    email: `${row.role || 'user'}@muslimkid.academy`,
+    email: row.email || `${role}@muslimkid.academy`,
     assignedTeacherIds: [],
   };
 }
@@ -308,7 +344,9 @@ export async function resolveUserRoleFromSupabase(userEmail: string): Promise<Su
     if (!sErr && sRows && sRows.length > 0) {
       const s = sRows[0];
       const role: UserRole =
-        s.role === 'manager'
+        s.role === 'system_admin'
+          ? 'system_admin'
+          : s.role === 'manager'
           ? 'manager'
           : s.role === 'sub_supervisor'
           ? 'sub_supervisor'
@@ -322,7 +360,9 @@ export async function resolveUserRoleFromSupabase(userEmail: string): Promise<Su
         name: s.name || 'مشرف',
         role,
         title:
-          role === 'manager'
+          role === 'system_admin'
+            ? 'مسؤول النظام'
+            : role === 'manager'
             ? 'المدير العام للأكاديمية'
             : role === 'sub_supervisor'
             ? 'المشرف التعليمي'
@@ -330,7 +370,9 @@ export async function resolveUserRoleFromSupabase(userEmail: string): Promise<Su
             ? 'معلم حلقة'
             : 'المشرف العام',
         roleLabel:
-          role === 'manager'
+          role === 'system_admin'
+            ? 'مسؤول النظام وصاحب المنظومة'
+            : role === 'manager'
             ? 'الإدارة العامة والمالية'
             : role === 'sub_supervisor'
             ? 'الإشراف الفرعي'
@@ -338,7 +380,9 @@ export async function resolveUserRoleFromSupabase(userEmail: string): Promise<Su
             ? 'معلم حلقة'
             : 'الإشراف الأكاديمي العام',
         department:
-          role === 'manager'
+          role === 'system_admin'
+            ? 'إدارة النظام والتقنية'
+            : role === 'manager'
             ? 'مجلس الإدارة والرقابة المالية'
             : role === 'sub_supervisor'
             ? 'فريق الإشراف التعليمي'

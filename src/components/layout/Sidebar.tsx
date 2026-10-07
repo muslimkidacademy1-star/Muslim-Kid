@@ -4,6 +4,7 @@ import { PWAInstallButton } from '../common/PWAInstallButton';
 import { UserRole } from '../../types';
 
 export type NavigationTab =
+  | 'system_admin'
   | 'dashboard'
   | 'students'
   | 'teachers'
@@ -33,8 +34,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'students' as NavigationTab, label: 'طلابي (حلقة القرآن)', icon: 'school' },
         { id: 'reports' as NavigationTab, label: 'شاشة التقارير', icon: 'monitoring' },
       ]
-    : currentUser.role === 'manager'
+    : currentRole === 'manager' || currentRole === 'system_admin'
     ? [
+        ...(isSuperAdmin && previewRole === null
+          ? [{ id: 'system_admin' as NavigationTab, label: 'إدارة النظام والربط', icon: 'manage_accounts' }]
+          : []),
         { id: 'dashboard' as NavigationTab, label: 'الرئيسية', icon: 'dashboard' },
         { id: 'reports' as NavigationTab, label: 'التقارير', icon: 'description' },
         { id: 'students' as NavigationTab, label: 'شاشة الطلاب', icon: 'school' },

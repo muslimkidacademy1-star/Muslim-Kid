@@ -1,4 +1,4 @@
-export type UserRole = 'general_supervisor' | 'sub_supervisor' | 'manager' | 'teacher';
+export type UserRole = 'system_admin' | 'general_supervisor' | 'sub_supervisor' | 'manager' | 'teacher';
 
 export interface Supervisor {
   id: string;
@@ -25,6 +25,7 @@ export interface Teacher {
   initials: string;
   status: 'active' | 'inactive';
   phone: string;
+  email?: string;
   studentsCount?: number;
   notes?: string;
 }

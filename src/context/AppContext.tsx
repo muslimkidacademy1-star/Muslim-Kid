@@ -18,6 +18,8 @@ import {
   supabaseRowToStudent,
   teacherToSupabaseRow,
   supabaseRowToTeacher,
+  supervisorToSupabaseRow,
+  supabaseRowToSupervisor,
   reportToSupabaseRow,
   supabaseRowToReport,
   sessionLogToSupabaseRow,
@@ -111,6 +113,33 @@ interface AppContextType {
   exportTeachersToExcel: (customList?: Teacher[]) => void;
   resetDatabase: () => void;
 
+  // System Admin Operations
+  reassignTeacherSupervisor: (
+    teacherId: string,
+    newSupervisorId: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  addSystemUser: (data: {
+    name: string;
+    email: string;
+    phone: string;
+    role: 'teacher' | 'sub_supervisor' | 'general_supervisor' | 'manager';
+    track?: string;
+    supervisorId?: string;
+  }) => Promise<{
+    success: boolean;
+    message: string;
+    error?: string;
+    userType: 'teacher' | 'supervisor';
+    recordId: string;
+    authStatus: string;
+    invitationUrl?: string;
+  }>;
+
+  // Invite & Password Setup flow
+  isSettingNewPassword: boolean;
+  setIsSettingNewPassword: (val: boolean) => void;
+  onPasswordUpdatedSuccessfully: (userEmail: string) => Promise<void>;
+
   // Live Date Helpers
   getTeacherById: (id: string) => Teacher | undefined;
   getSupervisorById: (id: string) => Supervisor | undefined;
@@ -125,6 +154,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // 1. Auth & User state
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
     return localStorage.getItem('mk_logged_in') === 'true';
+  });
+
+  // Track if user is currently completing invite / password setup
+  const [isSettingNewPassword, setIsSettingNewPassword] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash || '';
+      return hash.includes('type=invite') || hash.includes('type=recovery');
+    }
+    return false;
   });
 
   const [realUser, setRealUser] = useState<Supervisor>(() => {
@@ -144,17 +182,38 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return found || INITIAL_SUPERVISORS[0]; // defaults to manager
   });
 
+  // Dynamic supervisors state loaded from Supabase supervisors table
+  const [supervisors, setSupervisors] = useState<Supervisor[]>(() => {
+    const saved = localStorage.getItem('mk_supervisors_live_prod');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {
+        // fallback
+      }
+    }
+    return INITIAL_SUPERVISORS;
+  });
+
   // Super Admin View Mode state (simulating different roles for testing)
   const [previewRole, setPreviewRoleState] = useState<UserRole | null>(null);
 
-  // Exclusive condition for Super Admin View Mode: mahmoudaliwahkotb@gmail.com OR any manager
+  // Strict System Administrator identification:
+  // Must be verified by genuine database role 'system_admin' OR
+  // authenticated root owner account of the academy in Supabase.
+  // Note: Regular managers (e.g. admin@academy.com / د. خالد المنصور, or newly added managers)
+  // are NOT system administrators!
   const isSuperAdmin = useMemo(() => {
+    if (realUser?.role === 'system_admin') return true;
     const email = realUser?.email?.toLowerCase().trim() || '';
-    return (
-      email === 'mahmoudaliwahkotb@gmail.com' ||
-      email === 'muslim.kid.academy1@gmail.com' ||
-      realUser?.role === 'manager'
-    );
+    if (
+      (email === 'muslim.kid.academy1@gmail.com' && realUser?.id === '173a41a8-173a-4173-8173-173a41a83999') ||
+      (email === 'mahmoudaliwahkotb@gmail.com' && realUser?.id === 'b2132efb-cd93-400d-98fb-35122cff138d')
+    ) {
+      return true;
+    }
+    return false;
   }, [realUser]);
 
   const setPreviewRole = useCallback((role: UserRole | null) => {
@@ -337,6 +396,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Check and maintain Supabase Auth session on app launch across reloads
   useEffect(() => {
+    // Check initial hash for invite / password recovery tokens
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash || '';
+      if (hash.includes('type=invite') || hash.includes('type=recovery')) {
+        setIsSettingNewPassword(true);
+      }
+    }
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user?.email) {
         setIsLoggedIn(true);
@@ -353,17 +420,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user?.email) {
-        setIsLoggedIn(true);
-        localStorage.setItem('mk_logged_in', 'true');
-        const resolved = await resolveUserRoleFromSupabase(session.user.email);
-        if (resolved) {
-          setRealUser(resolved);
-          localStorage.setItem('mk_user_profile', JSON.stringify(resolved));
-          localStorage.setItem('mk_current_user_id', resolved.id);
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsSettingNewPassword(true);
+      } else if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user?.email) {
+        const hash = typeof window !== 'undefined' ? window.location.hash : '';
+        if (hash.includes('type=invite') || hash.includes('type=recovery')) {
+          setIsSettingNewPassword(true);
+        } else {
+          setIsLoggedIn(true);
+          localStorage.setItem('mk_logged_in', 'true');
+          const resolved = await resolveUserRoleFromSupabase(session.user.email);
+          if (resolved) {
+            setRealUser(resolved);
+            localStorage.setItem('mk_user_profile', JSON.stringify(resolved));
+            localStorage.setItem('mk_current_user_id', resolved.id);
+          }
         }
       } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false);
+        setIsSettingNewPassword(false);
         localStorage.setItem('mk_logged_in', 'false');
         localStorage.removeItem('mk_user_profile');
         localStorage.removeItem('mk_current_user_id');
@@ -375,27 +450,63 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
   }, []);
 
+  // Complete password update callback after accepting invite or resetting
+  const onPasswordUpdatedSuccessfully = async (userEmail: string) => {
+    try {
+      const cleanEmail = userEmail.trim().toLowerCase();
+      const resolved = await resolveUserRoleFromSupabase(cleanEmail);
+      if (resolved) {
+        setRealUser(resolved);
+        localStorage.setItem('mk_user_profile', JSON.stringify(resolved));
+        localStorage.setItem('mk_current_user_id', resolved.id);
+      }
+      setIsLoggedIn(true);
+      localStorage.setItem('mk_logged_in', 'true');
+      setIsSettingNewPassword(false);
+
+      // Clean the URL hash token
+      if (typeof window !== 'undefined') {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+
+      await fetchFromSupabase();
+    } catch (e) {
+      console.warn('Error finalizing password update:', e);
+      setIsSettingNewPassword(false);
+      setIsLoggedIn(true);
+    }
+  };
+
   // Function to fetch all data from Supabase
   const fetchFromSupabase = useCallback(async () => {
     try {
       setIsSyncing(true);
-      const [studRes, teachRes, repRes, sessRes] = await Promise.all([
+      const [studRes, teachRes, repRes, sessRes, supRes] = await Promise.all([
         supabase.from('students').select('*'),
         supabase.from('teachers').select('*'),
         supabase.from('reports').select('*'),
         supabase.from('session_logs').select('*'),
+        supabase.from('supervisors').select('*'),
       ]);
 
       if (studRes.error) throw studRes.error;
       if (teachRes.error) throw teachRes.error;
       if (repRes.error) throw repRes.error;
       if (sessRes.error) throw sessRes.error;
+      // Do not hard fail on supervisors table error if non-fatal
+      if (supRes.error) console.warn('Supervisors fetch note:', supRes.error.message);
 
       // Sync local state with exact Supabase data
       if (teachRes.data) {
         const loadedTeachers = teachRes.data.map(supabaseRowToTeacher);
         setTeachers(loadedTeachers);
         localStorage.setItem('mk_teachers_live_prod', JSON.stringify(loadedTeachers));
+      }
+
+      if (supRes.data && supRes.data.length > 0) {
+        const loadedSupervisors = supRes.data.map(supabaseRowToSupervisor);
+        setSupervisors(loadedSupervisors);
+        localStorage.setItem('mk_supervisors_live_prod', JSON.stringify(loadedSupervisors));
       }
 
       if (studRes.data) {
@@ -435,6 +546,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // Setup Supabase Realtime Channels for live multi-device synchronization
     const channel = supabase
       .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'supervisors' },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newSup = supabaseRowToSupervisor(payload.new);
+            setSupervisors((prev) => {
+              if (prev.some((s) => s.id === newSup.id)) return prev;
+              return [...prev, newSup];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            const updated = supabaseRowToSupervisor(payload.new);
+            setSupervisors((prev) => prev.map((s) => (s.id === updated.id ? { ...s, ...updated } : s)));
+          } else if (payload.eventType === 'DELETE') {
+            setSupervisors((prev) => prev.filter((s) => s.id !== payload.old.id));
+          }
+        }
+      )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'students' },
@@ -936,6 +1065,305 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  // Reassign teacher's supervisor with full audit logging & Supabase persistence
+  const reassignTeacherSupervisor = async (
+    teacherId: string,
+    newSupervisorId: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    const teacher = teachers.find((t) => t.id === teacherId);
+    if (!teacher) {
+      return { success: false, error: 'المعلم غير موجود في النظام' };
+    }
+
+    const oldSupervisor = supervisors.find((s) => s.id === teacher.supervisorId);
+    const newSupervisor = supervisors.find((s) => s.id === newSupervisorId);
+    if (!newSupervisor) {
+      return { success: false, error: 'المشرف الجديد غير موجود في قائمة المشرفين' };
+    }
+
+    try {
+      // 1. Direct update in Supabase teachers table
+      const { error: dbError } = await supabase
+        .from('teachers')
+        .update({ supervisor_id: newSupervisorId })
+        .eq('id', teacherId);
+
+      if (dbError) {
+        throw dbError;
+      }
+
+      // 2. Update local state immediately
+      setTeachers((prev) =>
+        prev.map((t) => (t.id === teacherId ? { ...t, supervisorId: newSupervisorId } : t))
+      );
+
+      // 3. Audit trail in Activity Log
+      const now = new Date();
+      const dateFormatted = now.toLocaleDateString('ar-EG', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+      const timeFormatted = now.toLocaleTimeString('ar-EG', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      addActivityLog(
+        'تغيير المشرف المسؤول للمعلم',
+        teacher.name,
+        teacherId,
+        `قام مسؤول النظام (${currentUser.name}) بنقل الإشراف على المعلم «${teacher.name}» من المشرف «${oldSupervisor?.name || 'غير محدد'}» إلى المشرف «${newSupervisor.name}» بتاريخ ${dateFormatted} الساعة ${timeFormatted}. طلاب المعلم وحصصه وتقاريره محفوظة بالكامل.`
+      );
+
+      // 4. Re-fetch from Supabase to guarantee complete sync
+      await fetchFromSupabase();
+
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error reassigning teacher supervisor:', err);
+      return {
+        success: false,
+        error: err.message || 'حدث خطأ أثناء حفظ التعديل في قاعدة البيانات',
+      };
+    }
+  };
+
+  // Add system user (Teacher, Sub-supervisor, General supervisor, Manager) safely
+  const addSystemUser = async (data: {
+    name: string;
+    email: string;
+    phone: string;
+    role: 'teacher' | 'sub_supervisor' | 'general_supervisor' | 'manager';
+    track?: string;
+    supervisorId?: string;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    error?: string;
+    userType: 'teacher' | 'supervisor';
+    recordId: string;
+    authStatus: string;
+    invitationUrl?: string;
+  }> => {
+    const cleanEmail = data.email.trim().toLowerCase();
+    const cleanName = data.name.trim();
+    const cleanPhone = data.phone.trim();
+    const newId = safeUuid(`u-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`);
+
+    try {
+      if (data.role === 'teacher') {
+        if (!data.supervisorId) {
+          return {
+            success: false,
+            message: 'يرجى اختيار المشرف الفرعي المسؤول عن المعلم',
+            error: 'تعيين المشرف مطلوب للمعلم في هذه المرحلة',
+            userType: 'teacher',
+            recordId: '',
+            authStatus: 'failed',
+          };
+        }
+
+        const nameParts = cleanName.split(/\s+/);
+        const initials =
+          nameParts.length > 1
+            ? `${nameParts[0].charAt(0)}${nameParts[1].charAt(0)}`
+            : nameParts[0]?.charAt(0) || 'م';
+
+        const circleName = data.track ? `حلقة (${data.track})` : 'حلقة القرآن الكريم';
+        const notes = data.track ? `${circleName} - مسار: ${data.track}` : circleName;
+
+        const teacherRecord: Teacher = {
+          id: newId,
+          name: cleanName,
+          supervisorId: data.supervisorId,
+          circleName,
+          track: data.track || 'القرآن الكريم والتجويد',
+          initials,
+          status: 'active',
+          phone: cleanPhone,
+          email: cleanEmail,
+          monthlySalary: 0,
+          notes,
+        };
+
+        // 1. Insert into Supabase teachers table
+        const { error: insErr } = await supabase.from('teachers').insert({
+          id: newId,
+          name: cleanName,
+          supervisor_id: safeUuid(data.supervisorId),
+          monthly_expenses: 0,
+          phone: cleanPhone,
+          notes,
+          email: cleanEmail,
+        });
+
+        if (insErr) {
+          throw insErr;
+        }
+
+        // 2. Update local state
+        setTeachers((prev) => [teacherRecord, ...prev]);
+
+        // 3. Activity log
+        const supervisor = supervisors.find((s) => s.id === data.supervisorId);
+        addActivityLog(
+          'إضافة معلم جديد وتعيين المشرف',
+          cleanName,
+          newId,
+          `قام مسؤول النظام (${currentUser.name}) بإضافة المعلم «${cleanName}» وإسناد الإشراف إلى «${supervisor?.name || 'غير محدد'}» (مسار: ${data.track || 'عام'})`
+        );
+
+        // 4. Try invoking Edge Function if deployed on Supabase
+        let authStatus = 'profile_saved_edge_pending';
+        let statusMessage = `تم تسجيل ملف المعلم «${cleanName}» بنجاح في قاعدة البيانات وإسناده للمشرف «${supervisor?.name || ''}».`;
+
+        try {
+          const edgeRes = await supabase.functions.invoke('create-user', {
+            body: {
+              email: cleanEmail,
+              name: cleanName,
+              phone: cleanPhone,
+              role: 'teacher',
+              track: data.track,
+              supervisorId: data.supervisorId,
+            },
+          });
+
+          if (edgeRes.data?.success) {
+            if (edgeRes.data.status === 'invited_successfully') {
+              authStatus = 'invited_successfully';
+              statusMessage = `تم حفظ ملف المعلم بنجاح وإرسال رابط الدعوة وتعيين كلمة المرور إلى البريد الإلكتروني المعتمد.`;
+            } else if (edgeRes.data.status === 'account_already_registered') {
+              authStatus = 'already_registered';
+              statusMessage = `حساب المعلم مسجل مسبقاً في نظام المصادقة وتم ربط ملفه بنجاح.`;
+            } else if (edgeRes.data.status === 'profile_saved_invite_failed') {
+              authStatus = 'invite_failed';
+              statusMessage = edgeRes.data.message || `تم حفظ السجل، لكن تعذر إرسال دعوة البريد الإلكتروني.`;
+            }
+          }
+        } catch {
+          // Edge function not yet deployed on server
+          authStatus = 'profile_saved_edge_pending';
+        }
+
+        await fetchFromSupabase();
+
+        return {
+          success: true,
+          message: statusMessage,
+          userType: 'teacher',
+          recordId: newId,
+          authStatus,
+        };
+      } else {
+        // Supervisor or Manager
+        const role = data.role;
+        const initialChar = cleanName.charAt(0) || 'م';
+
+        const supRecord: Supervisor = {
+          id: newId,
+          name: cleanName,
+          role,
+          title:
+            role === 'manager'
+              ? 'المدير العام للأكاديمية'
+              : role === 'sub_supervisor'
+              ? 'المشرف التعليمي'
+              : 'المشرف العام',
+          roleLabel:
+            role === 'manager'
+              ? 'الإدارة العامة والمالية'
+              : role === 'sub_supervisor'
+              ? 'الإشراف الميداني'
+              : 'الإشراف الأكاديمي العام',
+          department:
+            role === 'manager'
+              ? 'مجلس الإدارة والرقابة المالية'
+              : 'الشؤون التعليمية',
+          initials: initialChar,
+          email: cleanEmail,
+          assignedTeacherIds: [],
+        };
+
+        // 1. Insert into Supabase supervisors table
+        const { error: insErr } = await supabase.from('supervisors').insert({
+          id: newId,
+          name: cleanName,
+          role,
+          email: cleanEmail,
+        });
+
+        if (insErr) {
+          throw insErr;
+        }
+
+        // 2. Update local state
+        setSupervisors((prev) => [...prev, supRecord]);
+
+        // 3. Activity Log
+        addActivityLog(
+          'إضافة كادر إشرافي/إداري جديد',
+          cleanName,
+          newId,
+          `قام مسؤول النظام (${currentUser.name}) بإضافة ${supRecord.title} «${cleanName}» إلى المنظومة`
+        );
+
+        // 4. Try edge function
+        let authStatus = 'profile_saved_edge_pending';
+        let statusMessage = `تم تسجيل ${supRecord.title} «${cleanName}» بنجاح في قاعدة البيانات.`;
+
+        try {
+          const edgeRes = await supabase.functions.invoke('create-user', {
+            body: {
+              email: cleanEmail,
+              name: cleanName,
+              phone: cleanPhone,
+              role,
+              track: data.track,
+            },
+          });
+
+          if (edgeRes.data?.success) {
+            if (edgeRes.data.status === 'invited_successfully') {
+              authStatus = 'invited_successfully';
+              statusMessage = `تم حفظ ملف ${supRecord.title} بنجاح وإرسال رابط الدعوة وتعيين كلمة المرور إلى البريد الإلكتروني.`;
+            } else if (edgeRes.data.status === 'account_already_registered') {
+              authStatus = 'already_registered';
+              statusMessage = `حساب المستخدم مسجل مسبقاً في نظام المصادقة وتم ربط ملفه بنجاح.`;
+            } else if (edgeRes.data.status === 'profile_saved_invite_failed') {
+              authStatus = 'invite_failed';
+              statusMessage = edgeRes.data.message || `تم حفظ السجل، لكن تعذر إرسال دعوة البريد الإلكتروني.`;
+            }
+          }
+        } catch {
+          // Edge function not yet deployed
+          authStatus = 'profile_saved_edge_pending';
+        }
+
+        await fetchFromSupabase();
+
+        return {
+          success: true,
+          message: statusMessage,
+          userType: 'supervisor',
+          recordId: newId,
+          authStatus,
+        };
+      }
+    } catch (err: any) {
+      console.error('Error adding system user:', err);
+      return {
+        success: false,
+        message: err.message || 'حدث خطأ أثناء حفظ المستخدم في قاعدة البيانات',
+        error: err.message,
+        userType: data.role === 'teacher' ? 'teacher' : 'supervisor',
+        recordId: '',
+        authStatus: 'failed',
+      };
+    }
+  };
+
   // Vacation management
   const setStudentVacation = (
     id: string,
@@ -1364,13 +1792,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return teachers.length > 0 ? [teachers[0]] : [];
     }
     if (currentUser.role === 'sub_supervisor') {
-      const found = teachers.filter(
-        (t) =>
-          t.supervisorId === currentUser.id ||
-          currentUser.assignedTeacherIds?.includes(t.id)
-      );
-      if (found.length > 0) return found;
-      return teachers;
+      // Strict scoping: Sub-supervisor only sees teachers whose current supervisorId matches their ID
+      // When a teacher is reassigned to another supervisor, the previous supervisor loses access immediately!
+      return teachers.filter((t) => t.supervisorId === currentUser.id);
     }
     return teachers;
   }, [teachers, currentUser]);
@@ -1394,8 +1818,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
     if (currentUser.role === 'sub_supervisor') {
       const allowedTeacherIds = new Set(visibleTeachers.map((t) => t.id));
-      const matched = students.filter((s) => allowedTeacherIds.has(s.teacherId));
-      return matched.length > 0 ? matched : students;
+      return students.filter((s) => allowedTeacherIds.has(s.teacherId));
     }
     // General supervisor & Manager see all
     return students;
@@ -1716,7 +2139,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     <AppContext.Provider
       value={{
         currentUser,
-        supervisors: INITIAL_SUPERVISORS,
+        supervisors,
         setCurrentUser,
         switchUserRole,
         isLoggedIn,
@@ -1753,6 +2176,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         deleteStudent,
         addTeacher,
         updateTeacher,
+        reassignTeacherSupervisor,
+        addSystemUser,
+        isSettingNewPassword,
+        setIsSettingNewPassword,
+        onPasswordUpdatedSuccessfully,
         setStudentVacation,
         endStudentVacation,
         addReport,

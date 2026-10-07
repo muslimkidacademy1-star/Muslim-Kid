@@ -8,6 +8,7 @@ import { EducationalSupervisorView } from './components/dashboard/EducationalSup
 import { ManagerView } from './components/dashboard/ManagerView';
 import { ManagerBottomNav, ManagerTab } from './components/dashboard/ManagerBottomNav';
 import { TeacherView } from './components/dashboard/TeacherView';
+import { SystemAdminView } from './components/dashboard/SystemAdminView';
 import { TeachersListView } from './components/views/TeachersListView';
 import { ReportsListView } from './components/views/ReportsListView';
 import { StudentsListView } from './components/views/StudentsListView';
@@ -17,10 +18,11 @@ import { AddReportModal } from './components/modals/AddReportModal';
 import { VacationModal } from './components/modals/VacationModal';
 import { ActivityLogModal } from './components/modals/ActivityLogModal';
 import { LoginView } from './components/auth/LoginView';
+import { SetPasswordView } from './components/auth/SetPasswordView';
 import { Student, UserRole } from './types';
 
 function AuthenticatedApp() {
-  const { currentUser, isSuperAdmin, setPreviewRole } = useApp();
+  const { currentUser, isSuperAdmin, previewRole, setPreviewRole } = useApp();
 
   const [activeTab, setActiveTab] = useState<NavigationTab>('dashboard');
   const [isSidebarMobileOpen, setIsSidebarMobileOpen] = useState(false);
@@ -45,6 +47,13 @@ function AuthenticatedApp() {
     }
   }, [currentUser.role, activeTab]);
 
+  // Security gate: only genuine system admin can view system_admin tab and only when not in preview mode
+  React.useEffect(() => {
+    if ((!isSuperAdmin || previewRole !== null) && activeTab === 'system_admin') {
+      setActiveTab('dashboard');
+    }
+  }, [isSuperAdmin, previewRole, activeTab]);
+
   // Handle modal openings
   const handleOpenEdit = (student: Student) => {
     setSelectedStudentForEdit(student);
@@ -68,6 +77,13 @@ function AuthenticatedApp() {
 
   // Render content based on active tab & role
   const renderMainContent = () => {
+    // System Admin Dashboard (Exclusive to genuine system admin when not in preview mode)
+    if (activeTab === 'system_admin') {
+      if (isSuperAdmin && previewRole === null) {
+        return <SystemAdminView />;
+      }
+    }
+
     // Role Teacher: can only see their students or reports
     if (currentUser.role === 'teacher') {
       if (activeTab === 'reports') {
@@ -140,8 +156,14 @@ function AuthenticatedApp() {
       className="min-h-screen bg-[#F5F5F7] text-[#1D1D1F] flex flex-col font-sans selection:bg-[#1A7B88]/20 selection:text-[#125862]"
       dir="rtl"
     >
-      {/* Super Admin Preview Bar - Rendered exclusively for mahmoudaliwahkotb@gmail.com and managers */}
-      <SuperAdminViewBar onSelectRole={handleSwitchPreviewRole} />
+      {/* Super Admin Preview Bar - Rendered exclusively for genuine system administrator */}
+      <SuperAdminViewBar
+        onSelectRole={handleSwitchPreviewRole}
+        onNavigateToSystemAdmin={() => {
+          setPreviewRole(null);
+          setActiveTab('system_admin');
+        }}
+      />
 
       {/* Unified Top Header */}
       <Header
@@ -234,7 +256,11 @@ function AuthenticatedApp() {
 }
 
 function MainAppContent() {
-  const { isLoggedIn } = useApp();
+  const { isLoggedIn, isSettingNewPassword } = useApp();
+
+  if (isSettingNewPassword) {
+    return <SetPasswordView />;
+  }
 
   if (!isLoggedIn) {
     return <LoginView />;

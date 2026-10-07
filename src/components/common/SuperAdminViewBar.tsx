@@ -4,9 +4,13 @@ import { UserRole } from '../../types';
 
 interface SuperAdminViewBarProps {
   onSelectRole: (role: UserRole | null) => void;
+  onNavigateToSystemAdmin?: () => void;
 }
 
-export const SuperAdminViewBar: React.FC<SuperAdminViewBarProps> = ({ onSelectRole }) => {
+export const SuperAdminViewBar: React.FC<SuperAdminViewBarProps> = ({
+  onSelectRole,
+  onNavigateToSystemAdmin,
+}) => {
   const { isSuperAdmin, previewRole } = useApp();
 
   // Strict exclusive access check: If not super admin, completely hidden and prohibited
@@ -45,8 +49,20 @@ export const SuperAdminViewBar: React.FC<SuperAdminViewBarProps> = ({ onSelectRo
         </div>
       </div>
 
-      {/* Left Section: Quick Preview Buttons */}
+      {/* Left Section: Quick Preview Buttons & System Admin Shortcut */}
       <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+        {/* Shortcut to System Admin Panel */}
+        {onNavigateToSystemAdmin && (
+          <button
+            onClick={onNavigateToSystemAdmin}
+            title="الانتقال إلى لوحة إدارة النظام والمستخدمين"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-[#EAF5F7] hover:bg-white text-[#125862] shadow-2xs transition-all cursor-pointer whitespace-nowrap active:scale-98"
+          >
+            <span className="material-symbols-outlined text-sm">manage_accounts</span>
+            <span>إدارة النظام</span>
+          </button>
+        )}
+
         {/* 1. Teacher Preview Button */}
         <button
           onClick={() => onSelectRole('teacher')}
