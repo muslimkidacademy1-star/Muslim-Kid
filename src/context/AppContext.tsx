@@ -748,13 +748,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return teachers.find((t) => t.id === id);
   }, [teachers]);
 
-  // Helper to find supervisor
-  const getSupervisorById = useCallback((id: string): Supervisor | undefined => {
-    if (!id) return undefined;
-    const byId = INITIAL_SUPERVISORS.find((s) => s.id === id);
-    if (byId) return byId;
-    return INITIAL_SUPERVISORS.find((s) => s.assignedTeacherIds?.includes(id));
-  }, []);
+  // Helper to find supervisor (checking live supervisors first)
+  const getSupervisorById = useCallback(
+    (id: string): Supervisor | undefined => {
+      if (!id) return undefined;
+      const byLiveId = supervisors.find((s) => s.id === id);
+      if (byLiveId) return byLiveId;
+      const byLiveTeacher = supervisors.find((s) => s.assignedTeacherIds?.includes(id));
+      if (byLiveTeacher) return byLiveTeacher;
+      const byInitialId = INITIAL_SUPERVISORS.find((s) => s.id === id);
+      if (byInitialId) return byInitialId;
+      return INITIAL_SUPERVISORS.find((s) => s.assignedTeacherIds?.includes(id));
+    },
+    [supervisors]
+  );
 
   // Automatic Business Logic 2: Automatic vacation check and status recalculation
   useEffect(() => {
@@ -876,6 +883,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
     setActivityLogs((prev) => [newLog, ...prev]);
+
+    // Asynchronously persist to Supabase activity_logs table if migrated
+    (async () => {
+      try {
+        await supabase.from('activity_logs').insert({
+          action,
+          entity_id: studentId ? String(studentId) : null,
+          entity_name: studentName ? String(studentName) : null,
+          actor_name: currentUser.name,
+          actor_role: currentUser.role,
+          details: details || `تم تنفيذ العملية بنجاح بواسطة ${currentUser.name}`,
+        });
+      } catch {
+        // Silently continue if table not yet migrated on remote Supabase
+      }
+    })();
   };
 
   // Add student
@@ -1082,14 +1105,29 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
 
     try {
-      // 1. Direct update in Supabase teachers table
-      const { error: dbError } = await supabase
-        .from('teachers')
-        .update({ supervisor_id: newSupervisorId })
-        .eq('id', teacherId);
+      // 1. Try RPC reassign_teacher_supervisor first (with server-side role check & financial protection)
+      let updateDone = false;
+      try {
+        const { error: rpcErr } = await supabase.rpc('reassign_teacher_supervisor', {
+          p_teacher_id: safeUuid(teacherId),
+          p_new_supervisor_id: safeUuid(newSupervisorId),
+        });
+        if (!rpcErr) {
+          updateDone = true;
+        }
+      } catch {
+        // Fallback to direct update
+      }
 
-      if (dbError) {
-        throw dbError;
+      if (!updateDone) {
+        const { error: dbError } = await supabase
+          .from('teachers')
+          .update({ supervisor_id: safeUuid(newSupervisorId) })
+          .eq('id', safeUuid(teacherId));
+
+        if (dbError) {
+          throw dbError;
+        }
       }
 
       // 2. Update local state immediately
@@ -1109,11 +1147,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         minute: '2-digit',
       });
 
+      const actorLabel =
+        currentUser.role === 'general_supervisor'
+          ? 'المشرف العام'
+          : currentUser.role === 'manager'
+          ? 'المدير العام'
+          : 'مسؤول النظام';
+
       addActivityLog(
         'تغيير المشرف المسؤول للمعلم',
         teacher.name,
         teacherId,
-        `قام مسؤول النظام (${currentUser.name}) بنقل الإشراف على المعلم «${teacher.name}» من المشرف «${oldSupervisor?.name || 'غير محدد'}» إلى المشرف «${newSupervisor.name}» بتاريخ ${dateFormatted} الساعة ${timeFormatted}. طلاب المعلم وحصصه وتقاريره محفوظة بالكامل.`
+        `قام ${actorLabel} (${currentUser.name}) بنقل الإشراف على المعلم «${teacher.name}» من المشرف «${oldSupervisor?.name || 'غير محدد'}» إلى المشرف «${newSupervisor.name}» بتاريخ ${dateFormatted} الساعة ${timeFormatted}. طلاب المعلم وحصصه وتقاريره محفوظة بالكامل.`
       );
 
       // 4. Re-fetch from Supabase to guarantee complete sync
@@ -1150,6 +1195,27 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const cleanName = data.name.trim();
     const cleanPhone = data.phone.trim();
     const newId = safeUuid(`u-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`);
+
+    // Strict role validation: General supervisor can only add teachers or sub-supervisors
+    if (currentUser.role === 'general_supervisor') {
+      if (data.role !== 'teacher' && data.role !== 'sub_supervisor') {
+        return {
+          success: false,
+          message: 'غير مصرح: المشرف العام مصرح له بإضافة المعلمين والمشرفين الفرعيين فقط.',
+          error: 'الدور المطلوب غير مسموح به للمشرف العام',
+          userType: 'supervisor',
+          recordId: '',
+          authStatus: 'failed',
+        };
+      }
+    }
+
+    const actorLabel =
+      currentUser.role === 'general_supervisor'
+        ? 'المشرف العام'
+        : currentUser.role === 'manager'
+        ? 'المدير العام'
+        : 'مسؤول النظام';
 
     try {
       if (data.role === 'teacher') {
@@ -1211,7 +1277,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           'إضافة معلم جديد وتعيين المشرف',
           cleanName,
           newId,
-          `قام مسؤول النظام (${currentUser.name}) بإضافة المعلم «${cleanName}» وإسناد الإشراف إلى «${supervisor?.name || 'غير محدد'}» (مسار: ${data.track || 'عام'})`
+          `قام ${actorLabel} (${currentUser.name}) بإضافة المعلم «${cleanName}» وإسناد الإشراف إلى «${supervisor?.name || 'غير محدد'}» (مسار: ${data.track || 'عام'})`
         );
 
         // 4. Try invoking Edge Function if deployed on Supabase
@@ -1303,10 +1369,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
         // 3. Activity Log
         addActivityLog(
-          'إضافة كادر إشرافي/إداري جديد',
+          'إضافة كادر إشرافي جديد',
           cleanName,
           newId,
-          `قام مسؤول النظام (${currentUser.name}) بإضافة ${supRecord.title} «${cleanName}» إلى المنظومة`
+          `قام ${actorLabel} (${currentUser.name}) بإضافة ${supRecord.title} «${cleanName}» إلى المنظومة`
         );
 
         // 4. Try edge function

@@ -102,29 +102,35 @@ serve(async (req: Request) => {
       );
     }
 
-    // 3. Strict Server-Side Verification: Is the caller REALLY a System Administrator?
-    // We check the persistent database records directly, NEVER trusting the client body or preview role!
+    // 3. Strict Server-Side Verification: Determine Caller's Authentic Database Role
+    // NEVER trust the client body or preview role!
     const callerEmail = callerUser.email.toLowerCase().trim();
-    let isAuthorizedAdmin = SYSTEM_ADMIN_WHITELIST.includes(callerEmail);
+    let callerRole: 'system_admin' | 'general_supervisor' | null = null;
 
-    if (!isAuthorizedAdmin) {
-      // Check in supervisors table for role === 'system_admin'
+    if (SYSTEM_ADMIN_WHITELIST.includes(callerEmail)) {
+      callerRole = 'system_admin';
+    } else {
+      // Check in supervisors table
       const { data: supRecord, error: supErr } = await adminClient
         .from("supervisors")
         .select("role")
         .ilike("email", callerEmail)
         .maybeSingle();
 
-      if (!supErr && supRecord && supRecord.role === "system_admin") {
-        isAuthorizedAdmin = true;
+      if (!supErr && supRecord) {
+        if (supRecord.role === "system_admin") {
+          callerRole = "system_admin";
+        } else if (supRecord.role === "general_supervisor") {
+          callerRole = "general_supervisor";
+        }
       }
     }
 
-    if (!isAuthorizedAdmin) {
+    if (!callerRole) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "عفواً، هذه العملية محصورة بمسؤول النظام وصاحب المنظومة المعتمد حصراً في قاعدة البيانات.",
+          error: "عفواً، هذه العملية محصورة بمسؤول النظام والمشرف العام المعتمدين حصراً في قاعدة البيانات.",
           status: "forbidden",
         }),
         {
@@ -171,7 +177,7 @@ serve(async (req: Request) => {
       );
     }
 
-    // Security Gate: Strictly forbid creating another system_admin through this endpoint!
+    // Security Gate 1: Strictly forbid creating another system_admin through this endpoint!
     if ((targetRole as string) === "system_admin") {
       return new Response(
         JSON.stringify({
@@ -184,6 +190,24 @@ serve(async (req: Request) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
+    }
+
+    // Security Gate 2: Enforce strict role boundary based on caller
+    if (callerRole === "general_supervisor") {
+      // General Supervisor can ONLY create teachers or sub-supervisors
+      if (targetRole !== "teacher" && targetRole !== "sub_supervisor") {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "غير مصرح: المشرف العام يملك صلاحية إضافة المعلمين والمشرفين الفرعيين فقط. لا يمكن إنشاء مدير عام أو مشرف عام أو مسؤول نظام.",
+            status: "forbidden_role",
+          }),
+          {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
     }
 
     const allowedRoles = ["teacher", "sub_supervisor", "general_supervisor", "manager"];
@@ -305,6 +329,20 @@ serve(async (req: Request) => {
     } else {
       // Supervisor or Manager
       if (existingSupervisor) {
+        // If caller is general_supervisor and target is manager/system_admin/general_supervisor, forbid
+        if (callerRole === "general_supervisor" && existingSupervisor.role !== "sub_supervisor") {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: "غير مصرح: الحساب مسجل بدور قيادي أعلى ولا يملك المشرف العام صلاحية تعديله.",
+              status: "forbidden",
+            }),
+            {
+              status: 403,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
         // Supervisor profile already exists, do NOT overwrite or change blindly
         profileRecordId = existingSupervisor.id;
       } else {
@@ -339,7 +377,27 @@ serve(async (req: Request) => {
     // 7. Handle Supabase Auth Account & Invitation
     if (existingAuthUser) {
       // Account already exists in Supabase Auth!
-      // Update app_metadata securely without changing password or overwriting
+      const existingUserRole = existingAuthUser.app_metadata?.role || existingAuthUser.user_metadata?.role;
+      if (
+        callerRole === "general_supervisor" &&
+        existingUserRole &&
+        existingUserRole !== "teacher" &&
+        existingUserRole !== "sub_supervisor"
+      ) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "غير مصرح: الحساب مسجل مسبقاً بدور قيادي، ولا يملك المشرف العام صلاحية تعديله.",
+            status: "forbidden",
+          }),
+          {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Update metadata securely without changing password or overwriting
       await adminClient.auth.admin.updateUserById(existingAuthUser.id, {
         user_metadata: {
           name: cleanName,

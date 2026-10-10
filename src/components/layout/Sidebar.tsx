@@ -56,8 +56,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         },
         {
           id: 'teachers' as NavigationTab,
-          label: currentUser.role === 'sub_supervisor' ? 'معلموني' : 'شاشة المعلمين',
-          icon: 'badge',
+          label:
+            currentUser.role === 'general_supervisor'
+              ? 'إدارة الفريق'
+              : currentUser.role === 'sub_supervisor'
+              ? 'معلموني'
+              : 'شاشة المعلمين',
+          icon: currentUser.role === 'general_supervisor' ? 'groups' : 'badge',
         },
         { id: 'students' as NavigationTab, label: 'شاشة الطلاب', icon: 'school' },
         { id: 'reports' as NavigationTab, label: 'شاشة التقارير', icon: 'monitoring' },

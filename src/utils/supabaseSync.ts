@@ -117,13 +117,29 @@ export function supabaseRowToTeacher(row: any): Teacher {
   const notesStr = row.notes || '';
   const circleName = notesStr.includes('-') ? notesStr.split('-')[0].trim() : (notesStr || 'حلقة القرآن');
 
+  let track = 'القرآن الكريم والتجويد';
+  if (row.track) {
+    track = row.track;
+  } else if (notesStr.includes('مسار:')) {
+    const match = notesStr.match(/مسار:\s*([^-\n]+)/);
+    if (match && match[1]) {
+      track = match[1].trim();
+    }
+  } else if (notesStr.includes('مسار البنين') || notesStr.includes('بنين')) {
+    track = 'مسار البنين';
+  } else if (notesStr.includes('مسار الفتيات') || notesStr.includes('فتيات') || notesStr.includes('بنات')) {
+    track = 'مسار الفتيات';
+  } else if (notesStr.includes('عام')) {
+    track = 'مسار عام (القرآن الكريم)';
+  }
+
   return {
     id: row.id,
     name: row.name || 'معلم',
     monthlySalary: Number(row.monthly_expenses) || 1200,
     supervisorId: row.supervisor_id || '',
     circleName: circleName || 'حلقة الفرقان',
-    track: 'القرآن الكريم والتجويد',
+    track,
     initials,
     status: 'active',
     phone: row.phone || '',

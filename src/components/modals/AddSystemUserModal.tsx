@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 
-interface AddSystemUserModalProps {
+export interface AddSystemUserModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  allowedRoles?: AllowedRole[];
+  initialRole?: AllowedRole;
+  title?: string;
 }
 
 type AllowedRole = 'teacher' | 'sub_supervisor' | 'general_supervisor' | 'manager';
@@ -13,14 +16,28 @@ export const AddSystemUserModal: React.FC<AddSystemUserModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  allowedRoles,
+  initialRole,
+  title,
 }) => {
-  const { supervisors, addSystemUser } = useApp();
+  const { supervisors, addSystemUser, currentUser } = useApp();
+
+  // Strict Role Boundary: General Supervisor can ONLY add 'teacher' or 'sub_supervisor'
+  const isCallerGeneralSupervisor = currentUser.role === 'general_supervisor';
+  const effectiveAllowedRoles: AllowedRole[] = isCallerGeneralSupervisor
+    ? (allowedRoles
+        ? allowedRoles.filter((r) => r === 'teacher' || r === 'sub_supervisor')
+        : ['teacher', 'sub_supervisor'])
+    : (allowedRoles || ['teacher', 'sub_supervisor', 'general_supervisor', 'manager']);
 
   // Form Fields
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState<AllowedRole>('teacher');
+  const [role, setRole] = useState<AllowedRole>(() => {
+    if (initialRole && effectiveAllowedRoles.includes(initialRole)) return initialRole;
+    return effectiveAllowedRoles[0] || 'teacher';
+  });
   const [track, setTrack] = useState<'boys' | 'girls' | 'general'>('boys');
   const [supervisorId, setSupervisorId] = useState('');
 
@@ -51,7 +68,11 @@ export const AddSystemUserModal: React.FC<AddSystemUserModalProps> = ({
       setName('');
       setEmail('');
       setPhone('+966 ');
-      setRole('teacher');
+      const startingRole =
+        initialRole && effectiveAllowedRoles.includes(initialRole)
+          ? initialRole
+          : effectiveAllowedRoles[0] || 'teacher';
+      setRole(startingRole);
       setTrack('boys');
       setSupervisorId(subSupervisors[0]?.id || '');
       setStep('form');
@@ -60,7 +81,7 @@ export const AddSystemUserModal: React.FC<AddSystemUserModalProps> = ({
       setCopyFeedback(false);
       setCreatedUserData(null);
     }
-  }, [isOpen]);
+  }, [isOpen, initialRole]);
 
   if (!isOpen) return null;
 
@@ -203,12 +224,21 @@ ${createdUserData.supervisorName ? `- المشرف المسؤول: ${createdUser
             </div>
             <div className="min-w-0">
               <h2 className="text-base sm:text-lg font-bold truncate">
-                {step === 'form' && 'إضافة مستخدم جديد للنظام'}
+                {step === 'form' &&
+                  (title ||
+                    (role === 'teacher'
+                      ? 'إضافة معلم / معلمة حلقة'
+                      : role === 'sub_supervisor'
+                      ? 'إضافة مشرف فرعي / مشرفة'
+                      : 'إضافة مستخدم جديد للنظام'))}
                 {step === 'review' && 'مراجعة بيانات المستخدم قبل الحفظ'}
                 {step === 'success' && 'تم إضافة المستخدم بنجاح'}
               </h2>
               <p className="text-xs text-[#EAF5F7] mt-0.5 truncate">
-                {step === 'form' && 'تسجيل معلم أو مشرف أو مدير في قاعدة البيانات المعتمدة'}
+                {step === 'form' &&
+                  (isCallerGeneralSupervisor
+                    ? 'تسجيل الكادر التعليمي والإشرافي مع ربط المشرف والمسار'
+                    : 'تسجيل معلم أو مشرف أو مدير في قاعدة البيانات المعتمدة')}
                 {step === 'review' && 'تحقق من صحة الربط والصلاحية'}
                 {step === 'success' && 'توثيق السجل في Supabase وتجهيز تفاصيل الدخول'}
               </p>
@@ -296,58 +326,70 @@ ${createdUserData.supervisorName ? `- المشرف المسؤول: ${createdUser
                 <label className="block text-xs font-bold text-gray-800 mb-1.5">
                   الدور في المنظومة <span className="text-rose-600">*</span>
                 </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setRole('teacher')}
-                    className={`min-h-[44px] px-3 py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                      role === 'teacher'
-                        ? 'bg-[#1A7B88] text-white border-[#1A7B88] shadow-2xs'
-                        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-base">school</span>
-                    <span>معلم حلقة</span>
-                  </button>
+                <div
+                  className={`grid gap-2 ${
+                    effectiveAllowedRoles.length <= 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'
+                  }`}
+                >
+                  {effectiveAllowedRoles.includes('teacher') && (
+                    <button
+                      type="button"
+                      onClick={() => setRole('teacher')}
+                      className={`min-h-[44px] px-3 py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        role === 'teacher'
+                          ? 'bg-[#1A7B88] text-white border-[#1A7B88] shadow-2xs'
+                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-base">school</span>
+                      <span>معلم / معلمة حلقة</span>
+                    </button>
+                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => setRole('sub_supervisor')}
-                    className={`min-h-[44px] px-3 py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                      role === 'sub_supervisor'
-                        ? 'bg-[#1A7B88] text-white border-[#1A7B88] shadow-2xs'
-                        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-base">visibility</span>
-                    <span>مشرف فرعي</span>
-                  </button>
+                  {effectiveAllowedRoles.includes('sub_supervisor') && (
+                    <button
+                      type="button"
+                      onClick={() => setRole('sub_supervisor')}
+                      className={`min-h-[44px] px-3 py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        role === 'sub_supervisor'
+                          ? 'bg-[#1A7B88] text-white border-[#1A7B88] shadow-2xs'
+                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-base">visibility</span>
+                      <span>مشرف فرعي / مشرفة</span>
+                    </button>
+                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => setRole('general_supervisor')}
-                    className={`min-h-[44px] px-3 py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                      role === 'general_supervisor'
-                        ? 'bg-[#1A7B88] text-white border-[#1A7B88] shadow-2xs'
-                        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-base">groups</span>
-                    <span>مشرف عام</span>
-                  </button>
+                  {effectiveAllowedRoles.includes('general_supervisor') && (
+                    <button
+                      type="button"
+                      onClick={() => setRole('general_supervisor')}
+                      className={`min-h-[44px] px-3 py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        role === 'general_supervisor'
+                          ? 'bg-[#1A7B88] text-white border-[#1A7B88] shadow-2xs'
+                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-base">groups</span>
+                      <span>مشرف عام</span>
+                    </button>
+                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => setRole('manager')}
-                    className={`min-h-[44px] px-3 py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                      role === 'manager'
-                        ? 'bg-[#1A7B88] text-white border-[#1A7B88] shadow-2xs'
-                        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-base">admin_panel_settings</span>
-                    <span>مدير عام</span>
-                  </button>
+                  {effectiveAllowedRoles.includes('manager') && (
+                    <button
+                      type="button"
+                      onClick={() => setRole('manager')}
+                      className={`min-h-[44px] px-3 py-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        role === 'manager'
+                          ? 'bg-[#1A7B88] text-white border-[#1A7B88] shadow-2xs'
+                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-base">admin_panel_settings</span>
+                      <span>مدير عام</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -422,11 +464,15 @@ ${createdUserData.supervisorName ? `- المشرف المسؤول: ${createdUser
                       </option>
                       {subSupervisors.map((s) => (
                         <option key={s.id} value={s.id}>
-                          {s.name} ({s.title})
+                          {s.name} ({s.title || 'مشرف فرعي'})
                         </option>
                       ))}
                     </select>
                   )}
+                  <p className="text-[11px] text-gray-500 mt-2 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs text-[#1A7B88]">info</span>
+                    <span>يرجى اختيار المشرف الفرعي المتوافق مع مسار المعلم لضمان دقة المتابعة الإشرافية.</span>
+                  </p>
                 </div>
               )}
 

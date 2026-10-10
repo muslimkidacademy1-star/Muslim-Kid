@@ -105,6 +105,19 @@ function AuthenticatedApp() {
     }
 
     if (activeTab === 'teachers') {
+      if (currentUser.role === 'general_supervisor') {
+        return (
+          <GeneralSupervisorView
+            onAddStudent={handleOpenAddStudent}
+            onEditStudent={handleOpenEdit}
+            onAddReport={handleOpenReport}
+            onManageVacation={handleOpenVacation}
+            onOpenActivityLog={handleOpenActivityLog}
+            onNavigateTab={(tab) => setActiveTab(tab)}
+            initialTab="team"
+          />
+        );
+      }
       return <TeachersListView />;
     }
 
